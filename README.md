@@ -111,10 +111,43 @@ Full tables: [eval/results/rldd_fold3_part2.md](eval/results/rldd_fold3_part2.md
 
 **Limits:** 6 people; labels are self-reported states for whole videos; people sat at home, not driving.
 
+### Held-out test of a new alert rule (pre-registered)
+
+The results above suggested alerting on *long* eye closures instead of PERCLOS. To avoid
+fooling myself with 6 people, I chose the new rule using only those 6 development people (plus
+Eyeblink8 as an awake-driver false-alarm check) and **committed it to git before processing
+6 new people** (RLDD fold 5, part 1). See `eval/results/preregistration.json`, commits
+`20c45c5`/`28e74f6`.
+
+**Frozen rule:** alert when MediaPipe's eyeBlink score shows ≥ 4 eye closures of ≥ 0.5 s
+within 60 s, or one closure ≥ 1 s.
+
+| On 6 new people (3.4 h) | False alerts/h, alert videos | Drowsy videos alerted | People alerted more when drowsy |
+|---|---|---|---|
+| Previous rule (PERCLOS > 15% + microsleep) | 0.0 | 5/6 | 5/6 |
+| **New rule (shipped)** | **0.0** | **5/6** | **5/6** |
+| Exploratory: any closure ≥ 0.7 s | 2.0 | 6/6 | 6/6 |
+
+- **Detection tied** on new people. The new rule's gain is false alarms: **zero** across all
+  12 RLDD people and Eyeblink8's awake people, against one each for the previous rule. It met
+  the pre-registered ship criterion, so it now drives the app's alerts
+  (`drivemind/perception/drowsiness.py`). The live code makes the same alert/no-alert call
+  as the offline rule on all 44 videos, at 30 fps and at the dashboard's 15 fps (`eval/verify_drowsiness_rule.py`).
+- **Catching the last drowsy person costs ~2 false alarms per hour**, per the exploratory rule.
+- **The drowsiness classifier did not generalize.** 72% in cross-validation on the 6 development people fell
+  to **10/18 videos (56%, 95% CI 34–75%) on new people**, near human judges (58%) and below
+  the paper's 65% (trained on 48 people). Not shipped.
+
+Full table: [eval/results/rldd_heldout_test.md](eval/results/rldd_heldout_test.md).
+
 ```bash
 .venv/bin/gdown -O data/rldd/Fold3_part2.zip 1LZU5KfJkFMj2pIkGwb3RjHDazoUfxSYQ   # 7.5 GB
 .venv/bin/python -m eval.rldd_extract data/rldd/Fold3_part2.zip --workers 4      # ~10 min
 .venv/bin/python -m eval.rldd_eval && .venv/bin/python -m eval.rldd_eval --cap-fps 12
+# held-out test (fold 5 part 1, gdown id 16w30wEgcAbaUr4gx9o4sl_2TbIunD5yA, 10.9 GB)
+.venv/bin/python -m eval.rldd_extract data/rldd/Fold5_part1.zip --workers 4
+.venv/bin/python -m eval.drowsy_rule test          # uses the frozen preregistration.json
+.venv/bin/python -m eval.verify_drowsiness_rule    # live rule == evaluated rule
 ```
 
 ## Quick start

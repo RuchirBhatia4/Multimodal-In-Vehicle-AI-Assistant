@@ -29,7 +29,6 @@ class Settings:
     # --- Driver monitoring -------------------------------------------------
     face_model_path: Path = ROOT / "models" / "face_landmarker.task"
     perclos_window_s: float = float(_env("DM_PERCLOS_WINDOW", "20"))
-    microsleep_s: float = float(_env("DM_MICROSLEEP_S", "1.0"))
     distraction_s: float = float(_env("DM_DISTRACTION_S", "2.0"))
 
     # --- Audio ---------------------------------------------------------------

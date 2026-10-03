@@ -87,7 +87,15 @@ We evaluated eye-closure detection on **Eyeblink8**: 8 videos, 4 people, 71,748 
 - **Within-person vs. between-person.** Per video, PERCLOS separates states well (AUC 0.83). But the app's microsleep alerts rose with drowsiness for only 3/6 individuals: some drowsy people barely close their eyes. Population metrics hide per-user failures.
 - **Label noise.** Labels are self-reported states for whole 10-minute videos, so a "drowsy" video contains alert minutes. That caps achievable window-level accuracy.
 
-**Exercise.** Process more RLDD folds (disk permitting) and retrain the eye-state model on frames that include drowsy eye closures. Does the out-of-domain gap close?
+### 4d. Pre-registration and a true held-out test
+With 6 people, *any* rule you tune will look good on them. So: choose on development people, **write the choice down and commit it**, then test once on new people (RLDD fold 5). We also pre-committed the *ship criterion*. See `eval/drowsy_rule.py`.
+- **What happened.** The new long-closure rule tied the old PERCLOS rule on detection (5/6 drowsy videos) with zero false alarms. That's a modest, honest win: fewer false alarms, not better detection. Without the held-out test we'd have claimed more.
+- **Optimism of small-sample cross-validation.** The window classifier scored 72% in leave-one-person-out cross-validation on 6 people but 56% on 6 new people. Each fold trained on only 5 people, and all our design choices were made on those same 6. Reported dev numbers are an upper bound.
+- **Transparency about changes.** The first selection run picked a rule that nagged awake people 4.5 times an hour (caught by the Eyeblink8 check). We added that constraint *before* touching test data and recorded the change in the pre-registration. Changing the plan is fine; hiding that you changed it is not.
+- **Don't drop inconvenient test data.** One test video was 288×162 pixels with a face visible only 72% of the time. No exclusion rule was pre-registered, so it stayed in.
+- **Sensitivity vs. false alarms.** The exploratory "any closure ≥ 0.7 s" rule caught 6/6 drowsy people but cost ~2 false alarms per hour on alert drivers. Choosing between them is a product decision (how much nagging buys how much safety), and the data's job is to make the trade-off visible.
+
+**Exercise.** Process a third fold and re-test both rules. Does the tie hold, and does the exploratory rule's false-alarm rate stay near 2/h?
 
 ## 5. Streaming voice activity detection (Silero VAD)
 A ~2 MB recurrent network scores each 32 ms chunk for speech probability, carrying state between chunks (so each chunk is O(1)). We add **hysteresis** (start above 0.5, end below 0.35), a **hangover** (600 ms of silence ends the utterance) and a **pre-roll** (300 ms before onset, so the first syllable isn't clipped).

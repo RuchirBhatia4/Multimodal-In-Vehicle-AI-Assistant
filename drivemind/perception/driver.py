@@ -17,9 +17,11 @@ ML / CV concepts:
 * **Head pose via Perspective-n-Point (PnP).** Given 2-D landmark pixels and a generic
   3-D face model, `cv2.solvePnP` recovers the rotation (yaw/pitch/roll) of the head.
   This is the same math used for AR and camera calibration.
-* **Hysteresis state machine.** Enter "drowsy" at a high threshold, leave at a lower one,
-  so the alert doesn't flicker on and off at the boundary. Alert fatigue is a real reason
-  drivers disable safety systems.
+* **Validated alert rule.** Drowsy/microsleep alerts come from `perception/drowsiness.py`
+  (long eye closures), a rule chosen on development people and then tested once on new
+  people. PERCLOS and yawns are still computed and shown, but no longer trigger alerts:
+  neither was validated as an alert trigger. Alert fatigue is a real reason drivers
+  disable safety systems, so every trigger has to earn its place on held-out data.
 """
 
 from __future__ import annotations
@@ -33,6 +35,7 @@ import numpy as np
 from mediapipe.tasks.python import BaseOptions, vision
 
 from drivemind.config import ROOT, settings
+from drivemind.perception.drowsiness import DrowsinessRule
 from drivemind.perception.eye_state import EyeStateModel
 
 # MediaPipe face-mesh landmark indices.
@@ -109,7 +112,6 @@ class DriverMonitor:
         self.calib: list[float] = []
         self.ear_open: float | None = None
         self.closed_hist: deque[tuple[float, bool]] = deque()
-        self.eyes_closed_since: float | None = None
         self.mouth_open_since: float | None = None
         self.yawns: deque[float] = deque()
         self.away_since: float | None = None
@@ -118,6 +120,7 @@ class DriverMonitor:
         self.state = "calibrating"
         self.ear_smooth: float | None = None
         self.eye_prob: float | None = None
+        self.drowsiness = DrowsinessRule()
         if getattr(self, "eye_model", None):
             self.eye_model.reset()
 
@@ -146,7 +149,7 @@ class DriverMonitor:
         if not res.face_landmarks:
             if self.eye_model:
                 self.eye_model.push(None, self.ear_open)  # keeps the temporal window aligned
-            self.eyes_closed_since = None
+            self.drowsiness.update(t, None)
             self.away_since = self.away_since or t
             state = "no_face" if self.ear_open else "calibrating"
             if self.ear_open and t - self.away_since > settings.distraction_s:
@@ -164,6 +167,7 @@ class DriverMonitor:
         self.ear_smooth = ear if self.ear_smooth is None else 0.6 * ear + 0.4 * self.ear_smooth
         mar = _mar(pts)
         pose = _head_pose(pts, w, h)
+        rule = self.drowsiness.update(t, blink_bs)  # alerts: the held-out-validated rule
         eye_decision = None
         if self.eye_model:
             eye_decision = self.eye_model.push(
@@ -192,7 +196,7 @@ class DriverMonitor:
                 "eyes": self._eye_points(lm), "ms": round((time.perf_counter() - t0) * 1000, 1),
             }
 
-        # ---- Eyes: PERCLOS + microsleep ----
+        # ---- Eyes: PERCLOS (displayed; alerts come from the drowsiness rule above) ----
         if self.eye_model:
             # The model decides about the frame 6 frames (~200 ms) ago; a constant delay
             # doesn't change PERCLOS or closure durations.
@@ -203,11 +207,6 @@ class DriverMonitor:
         while self.closed_hist and t - self.closed_hist[0][0] > settings.perclos_window_s:
             self.closed_hist.popleft()
         perclos = sum(c for _, c in self.closed_hist) / max(len(self.closed_hist), 1)
-        if closed:
-            self.eyes_closed_since = self.eyes_closed_since or t
-        else:
-            self.eyes_closed_since = None
-        closed_for = t - self.eyes_closed_since if self.eyes_closed_since else 0.0
 
         # ---- Mouth: yawns (open wide for >1.2s) ----
         if mar > 0.55:
@@ -233,15 +232,14 @@ class DriverMonitor:
             self.away_since = None
         away_for = t - self.away_since if self.away_since else 0.0
 
-        # ---- State machine with hysteresis ----
-        prev = self.state
-        if closed_for >= settings.microsleep_s:
+        # ---- State: only the pre-registered, held-out-tested drowsiness rule raises alerts
+        # (eval/results/rldd_heldout_test.md). PERCLOS and yawns are shown, not acted on:
+        # neither the old PERCLOS > 15% trigger nor a yawn trigger beat it on new people.
+        if rule["microsleep"]:
             state = "microsleep"
         elif away_for >= settings.distraction_s:
             state = "distracted"
-        elif prev == "drowsy":
-            state = "drowsy" if (perclos > 0.08 or len(self.yawns) >= 2) else "alert"
-        elif perclos > 0.15 or len(self.yawns) >= 3:
+        elif rule["drowsy"]:
             state = "drowsy"
         else:
             state = "alert"
@@ -257,7 +255,8 @@ class DriverMonitor:
             "eye_source": self.eye_source,
             "mar": round(mar, 3),
             "perclos": round(perclos, 3),
-            "closed_for": round(closed_for, 2),
+            "closed_for": round(rule["closed_for"], 2),
+            "long_closures_60s": rule["long_closures_60s"],
             "yawns_2min": len(self.yawns),
             "yaw": None if yaw is None else round(yaw, 1),
             "pitch": None if pitch is None else round(pitch, 1),

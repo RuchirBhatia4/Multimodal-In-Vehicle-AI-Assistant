@@ -130,3 +130,54 @@ def test_eye_state_streaming_alignment(tmp_path):
     assert out[10] is True
     assert not any(v for k, v in out.items() if k != 10)
     assert out[15] is False  # no-face frame is never "closed"
+
+
+def _feed(rule, t0, closed_s, open_s, fps=30):
+    """Feed one closure of closed_s seconds followed by open_s seconds open."""
+    t, out = t0, None
+    for _ in range(round(closed_s * fps)):
+        out = rule.update(t, 0.9)
+        t += 1 / fps
+    for _ in range(round(open_s * fps)):
+        out = rule.update(t, 0.1)
+        t += 1 / fps
+    return t, out
+
+
+def test_drowsiness_rule_counts_long_closures():
+    from drivemind.perception.drowsiness import DrowsinessRule
+
+    r, t = DrowsinessRule(), 0.0
+    for _ in range(3):
+        t, out = _feed(r, t, 0.6, 5.0)
+    assert out["long_closures_60s"] == 3 and not out["drowsy"]
+    t, out = _feed(r, t, 0.6, 5.0)
+    assert out["drowsy"]
+    t, out = _feed(r, t, 0.0, 61.0)  # old closures expire after 60 s
+    assert out["long_closures_60s"] == 0 and not out["drowsy"]
+
+
+def test_drowsiness_rule_ignores_normal_blinks_and_flicker():
+    from drivemind.perception.drowsiness import DrowsinessRule
+
+    r, t = DrowsinessRule(), 0.0
+    for _ in range(20):  # 20 ordinary 0.2 s blinks: no long closures
+        t, out = _feed(r, t, 0.2, 2.0)
+    assert out["long_closures_60s"] == 0
+    # a 0.6 s closure interrupted by a 1-frame flicker is still one long closure
+    t, _ = _feed(r, t, 0.3, 1 / 30)
+    t, out = _feed(r, t, 0.3, 1.0)
+    assert out["long_closures_60s"] == 1
+
+
+def test_drowsiness_rule_microsleep_during_closure():
+    from drivemind.perception.drowsiness import DrowsinessRule
+
+    r, t = DrowsinessRule(), 0.0
+    out = None
+    for i in range(40):  # 1.33 s closed at 30 fps
+        out = r.update(t + i / 30, 0.9)
+        if i == 20:
+            assert not out["microsleep"]  # 0.7 s in
+    assert out["microsleep"]  # fires while the eyes are still closed
+    assert not r.update(t + 2.0, None)["microsleep"]  # face lost ends the closure

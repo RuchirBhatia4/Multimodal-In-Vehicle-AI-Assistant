@@ -51,9 +51,10 @@ def process_video(zip_path: str, member: str, pid: str, label: int, part: str = 
     if out.exists():
         return f"{pid}/{label}{part}: cached"
     t0 = time.perf_counter()
-    TMP.mkdir(parents=True, exist_ok=True)
+    job_dir = TMP / f"{pid}_{label}{part}"  # one folder per job: parallel extracts must not race on mkdir
+    job_dir.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(zip_path) as z:
-        path = z.extract(member, TMP)
+        path = z.extract(member, job_dir)
     try:
         cap = cv2.VideoCapture(path)
         fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
@@ -118,7 +119,10 @@ def main() -> None:
     with ProcessPoolExecutor(args.workers) as ex:
         futs = [ex.submit(process_video, args.zip, m, p, lab, part) for m, p, lab, part in jobs]
         for f in as_completed(futs):
-            print(f.result(), flush=True)
+            try:
+                print(f.result(), flush=True)
+            except Exception as e:  # noqa: BLE001 - report and keep going; rerun picks up the rest
+                print(f"FAILED: {e!r}", flush=True)
 
 
 if __name__ == "__main__":
