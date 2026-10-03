@@ -186,35 +186,50 @@ def select() -> None:
                       "shipped_baseline_dev": show(baseline)}, indent=2, default=float))
 
 
-def test() -> None:
+def test(test_fold: str = TEST, extra_train: tuple[str, ...] = ()) -> None:
+    """Evaluate the frozen rules on `test_fold`. The classifier is always trained on the
+    development people; with `extra_train`, a second classifier is also trained on the
+    development + those already-tested people (a learning-curve point: does more data help?)."""
     if not PREREG.exists():
         sys.exit("Run `select` first: the rule must be frozen before looking at test data.")
     prereg = json.loads(PREREG.read_text())
     rule = prereg["frozen_rule"]
     bundle = joblib.load(ROOT / "models" / "eye_state_gbm.joblib")
-    dev, tst = prepare({DEV}, bundle), prepare({TEST}, bundle)
-    assert not {v["pid"] for v in dev} & {v["pid"] for v in tst}, "test people must be new"
+    dev, tst = prepare({DEV}, bundle), prepare({test_fold}, bundle)
+    seen = dev + (prepare(set(extra_train), bundle) if extra_train else [])
+    assert tst and not {v["pid"] for v in seen} & {v["pid"] for v in tst}, "test people must be new"
 
     new = score_rule(tst, lambda v: len(long_closure_alerts(v["closed"][rule["detector"]], rule["min_closure_s"], rule["k_per_60s"])))
     ex = prereg["exploratory_rule"]
     expl = score_rule(tst, lambda v: len(long_closure_alerts(v["closed"][ex["detector"]], ex["min_closure_s"], ex["k_per_60s"])))
     base = score_rule(tst, lambda v: shipped_alerts(v["closed"]["trained_gbm"]))
 
-    Xd, yd, _ = windows_of(dev)
     Xt, yt, pt = windows_of(tst)
-    clf = make_classifier().fit(Xd, yd)
-    proba = clf.predict_proba(Xt)
-    rows, correct = [], 0
-    for p in np.unique(pt):
-        for lab in (0, 5, 10):
-            m = (pt == p) & (yt == lab)
-            if m.any():
-                vote = int(np.array([0, 5, 10])[proba[m].mean(0).argmax()])
-                correct += vote == lab
-                rows.append((p, lab, vote))
-    lo, hi = wilson(int(correct), len(rows))
-    ad = (yt == 0) | (yt == 10)
+    train_sets = {f"{len({v['pid'] for v in dev})} development people": dev}
+    if extra_train:
+        train_sets[f"{len({v['pid'] for v in seen})} people (development + earlier test)"] = seen
+    classifiers = {}
+    for name, vids in train_sets.items():
+        Xd, yd, _ = windows_of(vids)
+        proba = make_classifier().fit(Xd, yd).predict_proba(Xt)
+        rows, correct = [], 0
+        for p in np.unique(pt):
+            for lab in (0, 5, 10):
+                m = (pt == p) & (yt == lab)
+                if m.any():
+                    vote = int(np.array([0, 5, 10])[proba[m].mean(0).argmax()])
+                    correct += vote == lab
+                    rows.append((p, lab, vote))
+        lo, hi = wilson(int(correct), len(rows))
+        ad = (yt == 0) | (yt == 10)
+        classifiers[name] = {
+            "video_accuracy_3class": f"{correct}/{len(rows)} = {correct / len(rows):.1%} (95% CI {lo:.0%}-{hi:.0%})",
+            "window_auc_alert_vs_drowsy": float(roc_auc_score(yt[ad] == 10, proba[ad, 2] - proba[ad, 0])),
+            "video_predictions": rows,
+        }
+    first = next(iter(classifiers.values()))
     result = {
+        "test_fold": test_fold,
         "preregistration": prereg,
         "test_people": sorted({v["pid"] for v in tst}),
         "test_hours": sum(len(v["face"]) for v in tst) / FPS / 3600,
@@ -222,16 +237,34 @@ def test() -> None:
         "frozen_rule_on_test": new,
         "shipped_baseline_on_test": base,
         "exploratory_rule_on_test": expl,
-        "classifier_on_test": {
-            "video_accuracy_3class": f"{correct}/{len(rows)} = {correct / len(rows):.1%} (95% CI {lo:.0%}-{hi:.0%})",
-            "window_auc_alert_vs_drowsy": float(roc_auc_score(yt[ad] == 10, proba[ad, 2] - proba[ad, 0])),
-            "video_predictions": rows,
-        },
+        "classifier_on_test": first,
+        "classifiers_on_test": classifiers,
     }
-    out = ROOT / "eval" / "results" / "rldd_heldout_test.json"
-    out.write_text(json.dumps(result, indent=2, default=float))
+    stem = "rldd_heldout_test" if test_fold == TEST else f"rldd_heldout_test_{test_fold}"
+    (ROOT / "eval" / "results" / f"{stem}.json").write_text(json.dumps(result, indent=2, default=float))
     md = to_markdown(result)
-    (ROOT / "eval" / "results" / "rldd_heldout_test.md").write_text(md)
+    (ROOT / "eval" / "results" / f"{stem}.md").write_text(md)
+    print(md)
+
+
+def pooled() -> None:
+    """Combine every held-out test run so far (each test person counted once)."""
+    runs = [json.loads(p.read_text()) for p in sorted((ROOT / "eval" / "results").glob("rldd_heldout_test*.json"))]
+    L = ["# Frozen drowsiness rules, pooled over all held-out tests", "",
+         f"{len(runs)} test sets, {sum(len(r['test_people']) for r in runs)} unseen people, "
+         f"{sum(r['test_hours'] for r in runs):.1f} h.", "",
+         "| Rule | False alerts on alert videos | Drowsy videos with >= 1 alert (95% CI) | People alerted more when drowsy |", "|---|---|---|---|"]
+    for key, name in (("shipped_baseline_on_test", "Previous rule (PERCLOS > 15% + microsleep)"),
+                      ("frozen_rule_on_test", "Current rule (shipped since 2026-10-03)"),
+                      ("exploratory_rule_on_test", "Exploratory: any closure >= 0.7 s")):
+        fa = sum(n for r in runs for k, n in r[key]["per_video"].items() if k.endswith("/0"))
+        det = sum(int(r[key]["drowsy_videos_with_alert"].split("/")[0]) for r in runs)
+        n = sum(int(r[key]["drowsy_videos_with_alert"].split("/")[1]) for r in runs)
+        within = sum(int(r[key]["people_alerted_more_when_drowsy"].split("/")[0]) for r in runs)
+        lo, hi = wilson(det, n)
+        L.append(f"| {name} | {fa} alerts | {det}/{n} ({lo:.0%}-{hi:.0%}) | {within}/{n} |")
+    md = "\n".join(L)
+    (ROOT / "eval" / "results" / "rldd_heldout_pooled.md").write_text(md)
     print(md)
 
 
@@ -239,7 +272,7 @@ def to_markdown(r: dict) -> str:
     rule = r["preregistration"]["frozen_rule"]
     det = {"mediapipe_blink": "MediaPipe eyeBlink score", "trained_gbm": "trained eye model"}[rule["detector"]]
     L = [
-        "# Held-out test: frozen drowsiness rule on new people (UTA-RLDD Fold5_part1)", "",
+        f"# Held-out test: frozen drowsiness rule on new people (UTA-RLDD {r.get('test_fold', TEST)})", "",
         f"Rule frozen on {r['preregistration']['date']} using only {r['preregistration']['development_data']} "
         f"(see `preregistration.json`, committed before this test ran): alert when the {det} shows "
         f">= {rule['k_per_60s']} eye closures of >= {rule['min_closure_s']} s within {rule['window_s']:.0f} s, "
@@ -258,10 +291,12 @@ def to_markdown(r: dict) -> str:
     L += ["", f"On the development people the frozen rule scored: {dv['false_alerts_per_h_on_alert_videos']:.1f} false alerts/h, "
           f"{dv['drowsy_videos_with_alert']} drowsy videos alerted, {dv['people_alerted_more_when_drowsy']} people alerted more when drowsy. "
           f"Eyeblink8 (awake people) check: {r['preregistration']['eyeblink8_awake_false_alerts_per_h']:.1f} alerts/h.", "",
-          "## Drowsiness classifier trained on the 6 development people, tested on the 6 new people", "",
-          f"Video accuracy (3-class): {r['classifier_on_test']['video_accuracy_3class']}; "
-          f"window ROC-AUC alert vs drowsy: {r['classifier_on_test']['window_auc_alert_vs_drowsy']:.2f}. "
+          "## Drowsiness classifier, tested on the new people", "",
           "RLDD paper on its own test folds: HM-LSTM 65.2%, human judges 57.8%, chance 33%.", "",
+          "| Trained on | Video accuracy (3-class) | Window ROC-AUC alert vs drowsy |", "|---|---|---|"]
+    for name, c in r.get("classifiers_on_test", {"6 development people": r["classifier_on_test"]}).items():
+        L.append(f"| {name} | {c['video_accuracy_3class']} | {c['window_auc_alert_vs_drowsy']:.2f} |")
+    L += ["",
           "| Participant | State | Predicted | Source fps | Alerts (new rule) | Alerts (shipped) | Alerts (exploratory) |", "|---|---|---|---|---|---|---|"]
     names = {0: "alert", 5: "low vigilant", 10: "drowsy"}
     for p, lab, vote in r["classifier_on_test"]["video_predictions"]:
@@ -273,4 +308,11 @@ def to_markdown(r: dict) -> str:
 
 
 if __name__ == "__main__":
-    {"select": select, "test": test}[sys.argv[1]]()
+    import argparse
+
+    ap = argparse.ArgumentParser()
+    ap.add_argument("mode", choices=["select", "test", "pooled"])
+    ap.add_argument("--test-fold", default=TEST)
+    ap.add_argument("--extra-train", nargs="*", default=[], help="already-tested folds to add to classifier training")
+    a = ap.parse_args()
+    {"select": select, "pooled": pooled}.get(a.mode, lambda: test(a.test_fold, tuple(a.extra_train)))()

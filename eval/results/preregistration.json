@@ -127,5 +127,17 @@
   },
   "grid_size": 70,
   "candidates_meeting_false_alert_limit": 39,
-  "ship_criterion": "Replace the shipped drowsiness alert with the primary frozen rule only if, on the held-out test people, it has <= 1 false alert per hour on alert videos AND alerts on at least as many drowsy videos as the shipped rule. Decided before the test evaluation ran."
+  "ship_criterion": "Replace the shipped drowsiness alert with the primary frozen rule only if, on the held-out test people, it has <= 1 false alert per hour on alert videos AND alerts on at least as many drowsy videos as the shipped rule. Decided before the test evaluation ran.",
+  "second_test": {
+    "written": "2026-10-03, before any third RLDD part was downloaded (Google Drive quota blocked all parts at the time)",
+    "test_people": "the next UTA-RLDD part obtained, whichever fold it is; its participants must not include 31-36 or 49-54 (enforced by an assertion in eval/drowsy_rule.py)",
+    "rules": "unchanged: frozen_rule (shipped), exploratory_rule, and the previous PERCLOS rule as baseline; no re-tuning",
+    "classifier": "same frozen configuration, trained twice: (a) on the 6 development people, (b) on development + first test people (12); both evaluated on the new people",
+    "questions": [
+      "Does the shipped rule keep false alerts <= 1/h on alert videos and detection >= the previous rule?",
+      "Does training the classifier on 12 instead of 6 people improve held-out video accuracy (was 56% with 6)?"
+    ],
+    "reporting": "per-test results plus a pooled table over all held-out people (eval/drowsy_rule.py pooled), with 95% Wilson intervals; report whatever comes out, including if the rule does worse",
+    "exclusions": "none: every video in the part is used, including low-resolution or partial-face ones"
+  }
 }

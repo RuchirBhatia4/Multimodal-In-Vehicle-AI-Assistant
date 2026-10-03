@@ -12,9 +12,13 @@ Test: 6 new people (49, 50, 51, 52, 53, 54), 3.4 h.
 
 On the development people the frozen rule scored: 0.0 false alerts/h, 4/6 drowsy videos alerted, 4/6 people alerted more when drowsy. Eyeblink8 (awake people) check: 0.0 alerts/h.
 
-## Drowsiness classifier trained on the 6 development people, tested on the 6 new people
+## Drowsiness classifier, tested on the new people
 
-Video accuracy (3-class): 10/18 = 55.6% (95% CI 34%-75%); window ROC-AUC alert vs drowsy: 0.80. RLDD paper on its own test folds: HM-LSTM 65.2%, human judges 57.8%, chance 33%.
+RLDD paper on its own test folds: HM-LSTM 65.2%, human judges 57.8%, chance 33%.
+
+| Trained on | Video accuracy (3-class) | Window ROC-AUC alert vs drowsy |
+|---|---|---|
+| 6 development people | 10/18 = 55.6% (95% CI 34%-75%) | 0.80 |
 
 | Participant | State | Predicted | Source fps | Alerts (new rule) | Alerts (shipped) | Alerts (exploratory) |
 |---|---|---|---|---|---|---|
