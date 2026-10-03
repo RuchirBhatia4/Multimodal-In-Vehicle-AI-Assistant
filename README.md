@@ -33,12 +33,47 @@ Each stage runs on its own worker thread with **latest-frame-wins backpressure**
 | Stage | Latency |
 |---|---|
 | Road: YOLO11n + ByteTrack + TTC | 9–18 ms / frame |
-| Driver: landmarks + EAR/PERCLOS/head pose | 3–6 ms / frame |
+| Driver: landmarks + trained eye-state model + PERCLOS/head pose | ~6.6 ms median / frame |
 | Visual memory: CLIP keyframe embedding | ~18 ms |
 | Speech recognition: Whisper turbo, 3 s utterance | ~0.5–0.6 s |
 | On-device VLM answer (Qwen2.5-VL-3B, 4-bit) | ~1.6–2.2 s, decode ~110 tok/s |
 | End of speech → spoken answer (fully local) | ~2.5 s |
-| TTC accuracy vs. analytic ground truth | within 0.15 s |
+| TTC accuracy vs. analytic ground truth | within 0.15 s (unit test); 0.01–0.17 s in end-to-end runs |
+
+## Evaluation: driver eye-closure detection (Eyeblink8)
+
+The driver monitor's eye-closure detector was evaluated on the public
+[Eyeblink8](https://www.blinkingmatters.com/research) dataset (Fogelton & Benesova, 2016):
+8 videos, 4 people, 71,748 frames, 408 hand-labelled blinks. Every number below comes from
+**leave-one-person-out** cross-validation, so each person is scored by a model that never saw them.
+
+| Method | Blink F1 | Closed-frame F1 | PERCLOS error (pts) | False microsleep alerts / h |
+|---|---|---|---|---|
+| Textbook rule (EAR < 0.2) | 0.886 | 0.416 | 7.91 | 57.2 |
+| Original calibrated-EAR rule | 0.907 | 0.497 | 4.48 | 33.1 |
+| MediaPipe eyeBlink score (untrained fallback) | 0.911 | 0.843 | 0.41 | 0.0 |
+| **Gradient-boosted trees, 13-frame window (trained, shipped)** | **0.949** | **0.867** | **0.56** | **0.0** |
+
+The original rule's blink score looked fine, but it would have raised ~33 false microsleep
+alerts per hour on people who were wide awake. The trained model is robust to its
+threshold (F1 0.946–0.951, zero false microsleeps, for every threshold from 0.1 to 0.9), and
+the live system reproduces the offline decisions frame-for-frame (`eval/verify_online.py`).
+Full results, per-person breakdown and protocol: [eval/results/eyeblink8.md](eval/results/eyeblink8.md).
+
+**Limits:** 4 people, 40 minutes of awake subjects at a desk. This measures eye-closure
+detection, not drowsiness itself, which still needs a drowsy-driver dataset (UTA-RLDD, NTHU-DDD).
+
+Reproduce (downloads 313 MB; the dataset and trained weights are GPL-3 derived, so they're git-ignored):
+
+```bash
+mkdir -p data && curl -L -o data/eyeblink8.zip https://www.blinkingmatters.com/files/upload/research/eyeblink8.zip
+(cd data && unzip -q eyeblink8.zip && rm eyeblink8.zip)
+.venv/bin/python -m eval.eyeblink8_extract   # MediaPipe features for 71k frames (~5 min)
+.venv/bin/python -m eval.eyeblink8_eval      # LOPO evaluation + trains models/eye_state_gbm.joblib
+.venv/bin/python -m eval.verify_online       # live DriverMonitor == offline pipeline
+```
+
+Without `models/eye_state_gbm.joblib`, the driver monitor falls back to MediaPipe's eyeBlink score.
 
 ## Quick start
 
@@ -66,6 +101,7 @@ Then open **http://127.0.0.1:8000** in Chrome:
 drivemind/
   perception/road.py      detection, tracking, time-to-collision, traffic-light color
   perception/driver.py    EAR, PERCLOS, yawns, head pose (PnP), hysteresis state machine
+  perception/eye_state.py trained eye-closure model (streaming; same features as eval/)
   audio/vad.py            streaming Silero VAD with hysteresis, hangover, pre-roll
   audio/asr.py            Whisper turbo on MLX with domain biasing + hallucination guards
   memory/scene_memory.py  CLIP keyframe selection + text→frame retrieval
@@ -78,6 +114,7 @@ drivemind/
 web/                      dashboard (vanilla JS, AudioWorklet mic capture)
 docs/CONCEPTS.md          study guide: every ML concept, its math, and interview questions
 docs/VISION.md            use cases, market, and roadmap toward production ADAS
+eval/                     Eyeblink8 feature extraction, LOPO evaluation/training, parity checks
 tests/                    unit tests (TTC vs ground truth, EAR geometry, safety envelope…)
 scripts/e2e_check.py      end-to-end test over the WebSocket with synthetic video + speech
 ```

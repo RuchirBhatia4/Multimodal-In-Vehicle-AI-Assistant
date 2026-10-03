@@ -97,3 +97,36 @@ def test_alert_cooldown():
 )
 def test_defensive_json_extraction(raw, ok):
     assert (_extract_json(raw) is not None) == ok
+
+
+class CentreEarModel:
+    """Stand-in classifier: "probability" = 1 if the centre frame's calibrated EAR < 0.5."""
+
+    def predict_proba(self, X):
+        from drivemind.perception.eye_state import HALF
+
+        p = (X[:, HALF] < 0.5).astype(float)
+        return np.column_stack([1 - p, p])
+
+
+def test_eye_state_streaming_alignment(tmp_path):
+    """The streaming model must decide about the frame HALF steps ago, forward-fill frames
+    without a face, and report no-face centre frames as open."""
+    import joblib
+
+    from drivemind.perception.eye_state import HALF, RAW, EyeStateModel
+
+    path = tmp_path / "m.joblib"
+    joblib.dump({"model": CentreEarModel(), "threshold": 0.5, "half_window": HALF}, path)
+    m = EyeStateModel(path)
+    ears = [0.3] * 30
+    ears[10] = 0.05  # one closed frame
+    out = {}
+    for i, e in enumerate(ears):
+        raw = None if i == 15 else {k: 0.0 for k in RAW} | {"ear": e, "ear_l": e, "ear_r": e}
+        r = m.push(raw, base=0.3)
+        if r is not None:
+            out[i - HALF] = r[0]
+    assert out[10] is True
+    assert not any(v for k, v in out.items() if k != 10)
+    assert out[15] is False  # no-face frame is never "closed"

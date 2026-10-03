@@ -1,0 +1,387 @@
+{
+  "protocol": "Evaluate eye-closure / blink detection on Eyeblink8, and train a better detector.\n\nProtocol\n--------\n* **Leave-one-person-out (LOPO)**: 4 folds, one per person. Every number for a person comes\n  from a model that never saw that person. Thresholds for trained models are picked by an\n  *inner* LOPO on the 3 training people only, so the test person never influences any choice.\n* **Frame level**: target = \"at least one eye fully closed\" (annotation FC == 'C').\n  Frames where an eye is annotated not-visible are excluded from frame metrics.\n* **Blink (event) level**: predicted closed frames -> runs (gaps <= 2 frames merged). A\n  predicted run is a true positive if it overlaps a ground-truth blink interval (frames\n  sharing a blink ID); each ground-truth blink can be matched once.\n* **PERCLOS**: 60 s windows, 10 s step; mean absolute error vs. the hand-labelled closure.\n* **False alerts**: all subjects are awake (working at a computer), so every microsleep\n  (closed >= 1 s) or drowsy (20 s PERCLOS > 15%) alert the logic would raise is a false alarm.",
+  "hours_of_video": 0.664,
+  "methods": {
+    "fixed_ear_0.2": {
+      "blink": {
+        "precision": 0.8204592901878914,
+        "recall": 0.9632352941176471,
+        "f1": 0.8861330326944759,
+        "tp": 393,
+        "pred_events": 479,
+        "gt_blinks": 408
+      },
+      "blink_per_person": {
+        "A": {
+          "precision": 0.8356164383561644,
+          "recall": 0.9682539682539683,
+          "f1": 0.8970588235294118
+        },
+        "B": {
+          "precision": 0.8888888888888888,
+          "recall": 0.9166666666666666,
+          "f1": 0.9025641025641026
+        },
+        "C": {
+          "precision": 0.8554216867469879,
+          "recall": 1.0,
+          "f1": 0.922077922077922
+        },
+        "D": {
+          "precision": 0.7417218543046358,
+          "recall": 0.9739130434782609,
+          "f1": 0.8421052631578948
+        }
+      },
+      "frame_closed": {
+        "precision": 0.2625373134328358,
+        "recall": 0.9971655328798186,
+        "f1": 0.41564272211720227,
+        "roc_auc": 0.9965372660088678,
+        "pr_auc": 0.8929523872956174
+      },
+      "perclos_mae_pct_points": 7.907649870138235,
+      "false_alerts_per_hour": {
+        "microsleep": 57.2002007024586,
+        "drowsy": 19.568489713998996
+      }
+    },
+    "deployed_rule": {
+      "blink": {
+        "precision": 0.8855140186915887,
+        "recall": 0.928921568627451,
+        "f1": 0.9066985645933014,
+        "tp": 379,
+        "pred_events": 428,
+        "gt_blinks": 408
+      },
+      "blink_per_person": {
+        "A": {
+          "precision": 0.8561151079136691,
+          "recall": 0.9444444444444444,
+          "f1": 0.8981132075471698
+        },
+        "B": {
+          "precision": 0.9518072289156626,
+          "recall": 0.8229166666666666,
+          "f1": 0.88268156424581
+        },
+        "C": {
+          "precision": 0.8860759493670886,
+          "recall": 0.9859154929577465,
+          "f1": 0.9333333333333333
+        },
+        "D": {
+          "precision": 0.8740157480314961,
+          "recall": 0.9652173913043478,
+          "f1": 0.9173553719008265
+        }
+      },
+      "frame_closed": {
+        "precision": 0.33682725257004636,
+        "recall": 0.9472789115646258,
+        "f1": 0.4969516728624535,
+        "roc_auc": 0.9964932795426861,
+        "pr_auc": 0.9105079545511571
+      },
+      "perclos_mae_pct_points": 4.478271252917197,
+      "false_alerts_per_hour": {
+        "microsleep": 33.11590566984446,
+        "drowsy": 16.55795283492223
+      }
+    },
+    "mediapipe_blink": {
+      "blink": {
+        "precision": 0.9748603351955307,
+        "recall": 0.8553921568627451,
+        "f1": 0.9112271540469974,
+        "tp": 349,
+        "pred_events": 358,
+        "gt_blinks": 408
+      },
+      "blink_per_person": {
+        "A": {
+          "precision": 0.9819819819819819,
+          "recall": 0.8650793650793651,
+          "f1": 0.9198312236286921
+        },
+        "B": {
+          "precision": 0.958904109589041,
+          "recall": 0.7291666666666666,
+          "f1": 0.8284023668639053
+        },
+        "C": {
+          "precision": 0.9710144927536232,
+          "recall": 0.9436619718309859,
+          "f1": 0.9571428571428571
+        },
+        "D": {
+          "precision": 0.9809523809523809,
+          "recall": 0.8956521739130435,
+          "f1": 0.9363636363636364
+        }
+      },
+      "frame_closed": {
+        "precision": 0.8589065255731922,
+        "recall": 0.8282312925170068,
+        "f1": 0.8432900432900433,
+        "roc_auc": 0.9972869579089741,
+        "pr_auc": 0.9001457035767112
+      },
+      "perclos_mae_pct_points": 0.40501628782712557,
+      "false_alerts_per_hour": {
+        "microsleep": 0.0,
+        "drowsy": 1.5052684395383844
+      }
+    },
+    "ear_window_linear": {
+      "blink": {
+        "precision": 0.9367396593673966,
+        "recall": 0.9436274509803921,
+        "f1": 0.9401709401709402,
+        "tp": 385,
+        "pred_events": 411,
+        "gt_blinks": 408
+      },
+      "blink_per_person": {
+        "A": {
+          "precision": 0.8985507246376812,
+          "recall": 0.9841269841269841,
+          "f1": 0.9393939393939393
+        },
+        "B": {
+          "precision": 0.9625,
+          "recall": 0.8020833333333334,
+          "f1": 0.8750000000000001
+        },
+        "C": {
+          "precision": 0.9102564102564102,
+          "recall": 1.0,
+          "f1": 0.953020134228188
+        },
+        "D": {
+          "precision": 0.9826086956521739,
+          "recall": 0.9826086956521739,
+          "f1": 0.9826086956521739
+        }
+      },
+      "frame_closed": {
+        "precision": 0.7762681159420289,
+        "recall": 0.971655328798186,
+        "f1": 0.8630412890231621,
+        "roc_auc": 0.9983469392945244,
+        "pr_auc": 0.9286776761515966
+      },
+      "perclos_mae_pct_points": 0.6502005426606491,
+      "false_alerts_per_hour": {
+        "microsleep": 0.0,
+        "drowsy": 1.5052684395383844
+      },
+      "thresholds_per_fold": [
+        0.7,
+        0.875,
+        0.75,
+        0.9249999999999999
+      ]
+    },
+    "gbm_multifeature": {
+      "blink": {
+        "precision": 0.9463414634146341,
+        "recall": 0.9509803921568627,
+        "f1": 0.9486552567237164,
+        "tp": 388,
+        "pred_events": 410,
+        "gt_blinks": 408
+      },
+      "blink_per_person": {
+        "A": {
+          "precision": 0.9111111111111111,
+          "recall": 0.9761904761904762,
+          "f1": 0.9425287356321839
+        },
+        "B": {
+          "precision": 0.9534883720930233,
+          "recall": 0.8541666666666666,
+          "f1": 0.9010989010989011
+        },
+        "C": {
+          "precision": 0.9342105263157895,
+          "recall": 1.0,
+          "f1": 0.9659863945578232
+        },
+        "D": {
+          "precision": 0.9911504424778761,
+          "recall": 0.9739130434782609,
+          "f1": 0.9824561403508772
+        }
+      },
+      "frame_closed": {
+        "precision": 0.7999042604116803,
+        "recall": 0.9472789115646258,
+        "f1": 0.8673760705943421,
+        "roc_auc": 0.9963913783736581,
+        "pr_auc": 0.9129692120652434
+      },
+      "perclos_mae_pct_points": 0.5567604065925209,
+      "false_alerts_per_hour": {
+        "microsleep": 0.0,
+        "drowsy": 1.5052684395383844
+      },
+      "thresholds_per_fold": [
+        0.05,
+        0.27499999999999997,
+        0.475,
+        0.725
+      ]
+    }
+  },
+  "alerts_by_video": {
+    "fixed_ear_0.2": {
+      "1": {
+        "microsleep": 7,
+        "drowsy": 3
+      },
+      "2": {
+        "microsleep": 3,
+        "drowsy": 2
+      },
+      "3": {
+        "microsleep": 1,
+        "drowsy": 0
+      },
+      "4": {
+        "microsleep": 1,
+        "drowsy": 1
+      },
+      "8": {
+        "microsleep": 4,
+        "drowsy": 1
+      },
+      "9": {
+        "microsleep": 2,
+        "drowsy": 1
+      },
+      "10": {
+        "microsleep": 15,
+        "drowsy": 3
+      },
+      "11": {
+        "microsleep": 5,
+        "drowsy": 2
+      }
+    },
+    "deployed_rule": {
+      "1": {
+        "microsleep": 6,
+        "drowsy": 2
+      },
+      "2": {
+        "microsleep": 5,
+        "drowsy": 4
+      },
+      "3": {
+        "microsleep": 1,
+        "drowsy": 0
+      },
+      "8": {
+        "microsleep": 4,
+        "drowsy": 1
+      },
+      "9": {
+        "microsleep": 1,
+        "drowsy": 1
+      },
+      "10": {
+        "microsleep": 3,
+        "drowsy": 2
+      },
+      "11": {
+        "microsleep": 2,
+        "drowsy": 1
+      }
+    },
+    "mediapipe_blink": {
+      "2": {
+        "microsleep": 0,
+        "drowsy": 1
+      }
+    },
+    "ear_window_linear": {
+      "2": {
+        "microsleep": 0,
+        "drowsy": 1
+      }
+    },
+    "gbm_multifeature": {
+      "2": {
+        "microsleep": 0,
+        "drowsy": 1
+      }
+    }
+  },
+  "threshold_sensitivity": {
+    "ear_window_linear": {
+      "0.1": {
+        "blink_f1": 0.8724100327153762,
+        "perclos_mae_pts": 2.787442529151306,
+        "false_microsleep_per_h": 16.55795283492223
+      },
+      "0.3": {
+        "blink_f1": 0.9097142857142858,
+        "perclos_mae_pts": 1.6589265704990437,
+        "false_microsleep_per_h": 4.515805318615153
+      },
+      "0.5": {
+        "blink_f1": 0.9225352112676056,
+        "perclos_mae_pts": 1.1833680542639984,
+        "false_microsleep_per_h": 1.5052684395383844
+      },
+      "0.7": {
+        "blink_f1": 0.941034897713598,
+        "perclos_mae_pts": 0.8529219878820943,
+        "false_microsleep_per_h": 0.0
+      },
+      "0.9": {
+        "blink_f1": 0.9469790382244143,
+        "perclos_mae_pts": 0.5385403290439859,
+        "false_microsleep_per_h": 0.0
+      }
+    },
+    "gbm_multifeature": {
+      "0.1": {
+        "blink_f1": 0.9466019417475728,
+        "perclos_mae_pts": 0.8256622080392028,
+        "false_microsleep_per_h": 0.0
+      },
+      "0.3": {
+        "blink_f1": 0.9509803921568627,
+        "perclos_mae_pts": 0.6884911293272331,
+        "false_microsleep_per_h": 0.0
+      },
+      "0.5": {
+        "blink_f1": 0.9456790123456791,
+        "perclos_mae_pts": 0.6358268880326726,
+        "false_microsleep_per_h": 0.0
+      },
+      "0.7": {
+        "blink_f1": 0.9467162329615861,
+        "perclos_mae_pts": 0.6612797178688137,
+        "false_microsleep_per_h": 0.0
+      },
+      "0.9": {
+        "blink_f1": 0.948685857321652,
+        "perclos_mae_pts": 0.6655401627775297,
+        "false_microsleep_per_h": 0.0
+      }
+    }
+  },
+  "ground_truth_alerts": {
+    "microsleep": 0,
+    "drowsy": 1
+  },
+  "closed_frame_rate": 0.025073869654903273,
+  "deployed_model": {
+    "path": "models/eye_state_gbm.joblib",
+    "threshold": 0.7999999999999999
+  }
+}

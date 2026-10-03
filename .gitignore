@@ -8,3 +8,5 @@ models/*.task
 *.mov
 .DS_Store
 .claude/
+data/
+models/*.joblib

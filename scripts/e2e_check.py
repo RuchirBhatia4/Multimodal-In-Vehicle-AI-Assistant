@@ -47,6 +47,7 @@ async def main() -> None:
     face = cv2.imread(os.path.join(ASSETS, "zidane.jpg"))
     jpg = lambda im: cv2.imencode(".jpg", im, [cv2.IMWRITE_JPEG_QUALITY, 75])[1].tobytes()  # noqa: E731
     seen: dict[str, int] = {}
+    truth_log: list[tuple[float, float]] = []
     replies: list[dict] = []
 
     async with websockets.connect(URL, max_size=None) as ws:
@@ -54,8 +55,10 @@ async def main() -> None:
             async for raw in ws:
                 m = json.loads(raw)
                 seen[m["type"]] = seen.get(m["type"], 0) + 1
-                if m["type"] == "road" and m.get("min_ttc") is not None:
-                    print(f"  road: {len(m['tracks'])} tracks, TTC {m['min_ttc']}s ({m['fcw']}), {m['ms']} ms, {m['fps']} fps")
+                if m["type"] == "road" and m.get("min_ttc") is not None and truth_log:
+                    # True TTC of the most recent frame sent (results lag by one frame at most).
+                    true_ttc = truth_log[-1][1] - (time.monotonic() - truth_log[-1][0])
+                    print(f"  road: TTC est {m['min_ttc']:.2f}s vs true ~{true_ttc:.2f}s ({m['fcw']}), {m['ms']} ms, {m['fps']} fps")
                 elif m["type"] in ("alert", "transcript", "reply", "deferred", "status"):
                     print(" ", m["type"], {k: v for k, v in m.items() if k not in ("type", "detail")})
                     if m["type"] == "reply":
@@ -72,13 +75,18 @@ async def main() -> None:
             await asyncio.sleep(1)
         print("models:", h)
 
-        print("\n== 1. Approaching vehicle (expect falling TTC and an FCW alert)")
-        for i in range(45):
-            await ws.send(bytes([1]) + jpg(zoom(road, 1.0 + i * 0.045)))
+        print("\n== 1. Approaching vehicle at constant speed, true TTC 2.5 s -> 0.7 s (expect an FCW alert)")
+        # Physically correct looming: image scale s(t) = s0 * T0 / (T0 - t), so true TTC = T0 - t.
+        T0, start = 2.5, time.monotonic()
+        truth_log.clear()
+        while (t := time.monotonic() - start) < 1.8:
+            truth_log.append((time.monotonic(), T0 - t))
+            await ws.send(bytes([1]) + jpg(zoom(road, T0 / (T0 - t))))
             await ws.send(bytes([2]) + jpg(face))
             await asyncio.sleep(1 / 15)
 
         print("\n== 2. Static scene, then a spoken question (push-to-talk)")
+        truth_log.clear()
         for _ in range(20):
             await ws.send(bytes([1]) + jpg(road))
             await asyncio.sleep(1 / 15)

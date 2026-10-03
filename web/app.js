@@ -172,13 +172,23 @@ function drawCabin(c) {
   $("yaw").textContent = c.yaw != null ? `${c.yaw}°` : "–";
   $("pitch").textContent = c.pitch != null ? `${c.pitch}°` : "–";
   $("closed").textContent = c.closed_for != null ? `${c.closed_for}s` : "–";
-  if (c.ear != null) { earHist.push([c.ear, c.ear_threshold]); if (earHist.length > 150) earHist.shift(); drawSpark(); }
+  // Plot what actually drives the alerts: the eye-closure probability (trained model or
+  // MediaPipe blendshape). Before the model has a decision, fall back to raw EAR.
+  if (c.eye_prob != null) {
+    $("spark-label").textContent = c.eye_source === "trained_gbm" ? "Eye closure probability (trained model)" : "Eye closure (MediaPipe blink score)";
+    earHist.push([c.eye_prob, c.eye_threshold, 1.0]);
+  } else if (c.ear != null) {
+    $("spark-label").textContent = "Eye aspect ratio";
+    earHist.push([c.ear, c.ear_threshold, 0.45]);
+  }
+  if (earHist.length > 150) earHist.shift();
+  drawSpark();
 }
 
 function drawSpark() {
   const cv = $("ear-spark"), ctx = cv.getContext("2d");
   cv.width = cv.clientWidth * devicePixelRatio; cv.height = cv.clientHeight * devicePixelRatio;
-  const W = cv.width, H = cv.height, max = 0.45, y = (v) => H - (v / max) * H;
+  const W = cv.width, H = cv.height, max = earHist.at(-1)?.[2] || 0.45, y = (v) => H - (Math.min(v, max) / max) * H;
   ctx.clearRect(0, 0, W, H);
   const th = earHist.at(-1)?.[1];
   if (th) { ctx.strokeStyle = css("--crit"); ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(0, y(th)); ctx.lineTo(W, y(th)); ctx.stroke(); ctx.setLineDash([]); }

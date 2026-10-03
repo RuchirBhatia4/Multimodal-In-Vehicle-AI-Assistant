@@ -10,8 +10,9 @@ Concepts:
   the motivation here.
 * **Alert arbitration + rate limiting.** Safety alerts preempt everything; each alert type
   has a cooldown so the driver isn't nagged into turning the system off.
-* **Proactive engagement.** For drowsiness, *conversation* re-engages the brain better
-  than a beep, so the assistant asks a question rather than just chiming.
+* **Proactive engagement.** For drowsiness, the assistant asks a question rather than just
+  chiming. That conversation re-engages a tired driver better than a chime is our
+  hypothesis, not an established result; it needs a user study.
 """
 
 from __future__ import annotations

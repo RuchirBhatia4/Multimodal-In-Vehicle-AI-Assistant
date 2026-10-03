@@ -32,7 +32,8 @@ import mediapipe as mp
 import numpy as np
 from mediapipe.tasks.python import BaseOptions, vision
 
-from drivemind.config import settings
+from drivemind.config import ROOT, settings
+from drivemind.perception.eye_state import EyeStateModel
 
 # MediaPipe face-mesh landmark indices.
 LEFT_EYE = [362, 385, 387, 263, 373, 380]  # p1..p6 in the EAR paper's ordering
@@ -90,9 +91,18 @@ class DriverMonitor:
             base_options=BaseOptions(model_asset_path=str(settings.face_model_path), delegate=BaseOptions.Delegate.CPU),
             running_mode=vision.RunningMode.VIDEO,
             num_faces=1,
+            output_face_blendshapes=True,
         )
         self.landmarker = vision.FaceLandmarker.create_from_options(opts)
         self._last_ts_ms = 0
+        # Eye-closure decision, best available first (see eval/results/eyeblink8.md):
+        #   1. gradient-boosted model trained on Eyeblink8 (blink F1 0.95, 0 false microsleeps/h)
+        #   2. MediaPipe's own eyeBlink blendshape > 0.5 (no training needed; PERCLOS-accurate)
+        # The original calibrated-EAR threshold is no longer used for alerts: it produced
+        # ~33 false microsleep alerts per hour on wide-awake people.
+        model_path = ROOT / "models" / "eye_state_gbm.joblib"
+        self.eye_model = EyeStateModel(model_path) if model_path.exists() else None
+        self.eye_source = "trained_gbm" if self.eye_model else "mediapipe_blendshape"
         self.reset()
 
     def reset(self) -> None:
@@ -107,6 +117,18 @@ class DriverMonitor:
         self.yaw_zero: float | None = None
         self.state = "calibrating"
         self.ear_smooth: float | None = None
+        self.eye_prob: float | None = None
+        if getattr(self, "eye_model", None):
+            self.eye_model.reset()
+
+    def close(self) -> None:
+        """Release the MediaPipe graph. Call this explicitly, from the thread that used the
+        monitor. Never leave it to the garbage collector: MediaPipe's __del__ -> close() waits
+        on an internal worker thread, and when the collector happens to run it inside another
+        thread (we caught it inside PyTorch's torch.load) that wait never returns: a deadlock."""
+        if self.landmarker is not None:
+            self.landmarker.close()
+            self.landmarker = None
 
     @property
     def ear_threshold(self) -> float:
@@ -122,6 +144,8 @@ class DriverMonitor:
         res = self.landmarker.detect_for_video(mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb), ts_ms)
 
         if not res.face_landmarks:
+            if self.eye_model:
+                self.eye_model.push(None, self.ear_open)  # keeps the temporal window aligned
             self.eyes_closed_since = None
             self.away_since = self.away_since or t
             state = "no_face" if self.ear_open else "calibrating"
@@ -132,11 +156,25 @@ class DriverMonitor:
 
         lm = res.face_landmarks[0]
         pts = np.array([(p.x * w, p.y * h) for p in lm], dtype=np.float64)
-        ear = (_ear(pts, LEFT_EYE) + _ear(pts, RIGHT_EYE)) / 2.0
+        ear_l, ear_r = _ear(pts, LEFT_EYE), _ear(pts, RIGHT_EYE)
+        ear = (ear_l + ear_r) / 2.0
+        bs = {c.category_name: c.score for c in res.face_blendshapes[0]} if res.face_blendshapes else {}
+        blink_bs = (bs.get("eyeBlinkLeft", 0.0) + bs.get("eyeBlinkRight", 0.0)) / 2
         # Exponential moving average: a 1-pole low-pass filter to suppress landmark jitter.
         self.ear_smooth = ear if self.ear_smooth is None else 0.6 * ear + 0.4 * self.ear_smooth
         mar = _mar(pts)
         pose = _head_pose(pts, w, h)
+        eye_decision = None
+        if self.eye_model:
+            eye_decision = self.eye_model.push(
+                {
+                    "ear": ear, "ear_l": ear_l, "ear_r": ear_r, "blink": blink_bs,
+                    "squint": (bs.get("eyeSquintLeft", np.nan) + bs.get("eyeSquintRight", np.nan)) / 2,
+                    "look_down": (bs.get("eyeLookDownLeft", np.nan) + bs.get("eyeLookDownRight", np.nan)) / 2,
+                    "pitch": pose[1] if pose else np.nan, "yaw": pose[0] if pose else np.nan,
+                },
+                self.ear_open,
+            )
 
         # ---- Calibration: learn this driver's open-eye EAR and neutral head pose ----
         if self.ear_open is None:
@@ -155,7 +193,12 @@ class DriverMonitor:
             }
 
         # ---- Eyes: PERCLOS + microsleep ----
-        closed = self.ear_smooth < self.ear_threshold
+        if self.eye_model:
+            # The model decides about the frame 6 frames (~200 ms) ago; a constant delay
+            # doesn't change PERCLOS or closure durations.
+            closed, self.eye_prob = eye_decision if eye_decision else (False, None)
+        else:
+            closed, self.eye_prob = blink_bs > 0.5, blink_bs
         self.closed_hist.append((t, closed))
         while self.closed_hist and t - self.closed_hist[0][0] > settings.perclos_window_s:
             self.closed_hist.popleft()
@@ -209,6 +252,9 @@ class DriverMonitor:
             "state": state,
             "ear": round(self.ear_smooth, 3),
             "ear_threshold": round(self.ear_threshold, 3),
+            "eye_prob": None if self.eye_prob is None else round(self.eye_prob, 3),
+            "eye_threshold": self.eye_model.threshold if self.eye_model else 0.5,
+            "eye_source": self.eye_source,
             "mar": round(mar, 3),
             "perclos": round(perclos, 3),
             "closed_for": round(closed_for, 2),

@@ -18,6 +18,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import threading
 import time
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor
@@ -39,6 +40,11 @@ MSG_ROAD, MSG_CABIN, MSG_AUDIO = 1, 2, 3
 
 # MLX (Whisper + VLM) must be serialized; one shared single-thread executor does that.
 MLX_EXECUTOR = ThreadPoolExecutor(1, thread_name_prefix="mlx")
+# A perception stage busy for longer than this is stalled (normal: 5-20 ms per frame).
+STALL_S = 5.0
+# Monitors abandoned by the watchdog are kept referenced forever: if the garbage collector
+# finalized one, MediaPipe's __del__ could deadlock some *other* thread (see DriverMonitor.close).
+_ABANDONED: list = []
 
 
 class RateMeter:
@@ -77,6 +83,7 @@ class Session:
         self._ptt_buf: list[bytes] = []
         self.tts_speaking = False
         self.busy = {"road": False, "cabin": False, "memory": False, "brain": False}
+        self.busy_since = {"road": 0.0, "cabin": 0.0}
         self.dropped = {"road": 0, "cabin": 0}
         self.meters = {"road": RateMeter(), "cabin": RateMeter()}
         self.last_road: dict | None = None
@@ -121,6 +128,16 @@ class Session:
             models.listeners.remove(self._status_cb)
         for ex in self.ex.values():
             ex.shutdown(wait=False, cancel_futures=True)
+        # Release the face model deterministically, on a helper thread that first waits for
+        # the cabin worker's in-flight frame to finish (see DriverMonitor.close for why).
+        driver, self.driver = self.driver, None
+        if driver is not None:
+            threading.Thread(target=self._dispose, args=(self.ex["cabin"], driver), daemon=True).start()
+
+    @staticmethod
+    def _dispose(executor: ThreadPoolExecutor, driver: DriverMonitor) -> None:
+        executor.shutdown(wait=True)
+        driver.close()
 
     # ------------------------------------------------------------- routing
     async def on_bytes(self, data: bytes) -> None:
@@ -136,9 +153,21 @@ class Session:
 
     async def _spawn(self, stage: str, fn, payload) -> None:
         if self.busy[stage]:
-            self.dropped[stage] += 1  # latest-frame-wins backpressure
-            return
+            if time.monotonic() - self.busy_since[stage] < STALL_S:
+                self.dropped[stage] += 1  # latest-frame-wins backpressure
+                return
+            # Watchdog: the worker is stuck. Abandon it (a Python thread can't be killed) and
+            # start a fresh worker + model so the safety-relevant stage keeps running.
+            log.error("%s stage stalled for >%.0fs; replacing its worker", stage, STALL_S)
+            await self.send({"type": "error", "stage": stage, "message": f"{stage} stage stalled; restarted"})
+            self.ex[stage] = ThreadPoolExecutor(1, thread_name_prefix=stage)
+            if stage == "road":
+                self.road = None
+            else:
+                _ABANDONED.append(self.driver)
+                self.driver = None
         self.busy[stage] = True
+        self.busy_since[stage] = time.monotonic()
         asyncio.create_task(fn(payload))
 
     async def on_json(self, msg: dict) -> None:
@@ -206,6 +235,8 @@ class Session:
     async def _cabin_frame(self, jpeg: bytes) -> None:
         try:
             def work():
+                if self.closed:
+                    return None  # don't build a new monitor for a session that just ended
                 if self.driver is None:
                     self.driver = DriverMonitor()
                 frame = _decode(jpeg)

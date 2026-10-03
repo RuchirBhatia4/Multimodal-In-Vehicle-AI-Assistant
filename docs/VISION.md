@@ -10,7 +10,7 @@ Modern cars ship with two kinds of intelligence that don't talk to each other:
 |---|---|---|
 | **ADAS** (Mobileye, Tesla Vision, Bosch) | Detects lanes, cars and pedestrians; brakes and steers | Explain itself, hold a conversation, or understand *why* the driver is struggling |
 | **Voice assistants** (Alexa Auto, Google Built-in, Cerence) | Play music, navigate, set temperature | See anything. "What did that sign say?" gets no answer |
-| **Driver Monitoring (DMS)** (Seeing Machines, Smart Eye) | Detects drowsiness and distraction | Do anything about it beyond a beep |
+| **Driver Monitoring (DMS)** (Seeing Machines, Smart Eye) | Detects drowsiness and distraction | Mostly warn with chimes and dashboard icons; no dialogue with the driver |
 
 **DriveMind fuses all three.** When the driver monitor detects drowsiness, the assistant *talks* to the driver. When the road camera sees a closing vehicle, the assistant *holds back* non-urgent chatter. When the driver asks "what was that sign?", it searches a short-term **visual memory** of the last few minutes.
 
@@ -24,7 +24,7 @@ Modern cars ship with two kinds of intelligence that don't talk to each other:
 ## 3. Use cases
 
 ### Safety (the reason an OEM would pay)
-1. **Proactive drowsiness intervention**: detect microsleeps (PERCLOS, eye-aspect ratio, yawns), then *start a conversation* to re-engage the driver, suggest the nearest rest stop, and escalate to alerts. Talking to a driver is shown to restore alertness better than a chime.
+1. **Proactive drowsiness intervention**: detect microsleeps (PERCLOS, eye-aspect ratio, yawns), then *start a conversation* to re-engage the driver, suggest the nearest rest stop, and escalate to alerts. (Whether conversation re-engages a drowsy driver better than a chime is a hypothesis this project should test, not a settled fact.)
 2. **Forward collision awareness**: track vehicles and estimate *time-to-collision* from a single camera. Warn the driver and suppress distracting assistant responses while the road is demanding (**workload-aware attention management**).
 3. **Distraction detection**: head pose shows the driver looking away from the road; combined with the road scene, the assistant can warn when it matters.
 4. **Explainable ADAS**: "Why did the car brake?" → "A pedestrian stepped out from behind the parked van on the right." This builds the trust that ADAS adoption depends on.

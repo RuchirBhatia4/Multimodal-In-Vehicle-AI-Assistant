@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import faulthandler
 import logging
+import signal
 import threading
 from contextlib import asynccontextmanager
 
@@ -13,6 +15,10 @@ from drivemind.server.models import models
 from drivemind.server.session import Session
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
+# Native crashes (segfaults in C extensions) print every thread's Python stack instead of
+# dying silently, and `kill -USR1 <pid>` dumps all stacks on demand to debug a hang.
+faulthandler.enable(all_threads=True)
+faulthandler.register(signal.SIGUSR1, all_threads=True)
 
 
 @asynccontextmanager

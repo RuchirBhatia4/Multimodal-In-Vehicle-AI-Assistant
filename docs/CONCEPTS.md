@@ -59,7 +59,7 @@ Read it alongside the code: every module's docstring is a short version of its s
 - **EAR** (Eye Aspect Ratio) = (‖p2−p6‖ + ‖p3−p5‖) / (2‖p1−p4‖). It is scale-invariant and drops toward 0 when the eye closes.
 - **Calibration.** We take the 80th percentile of EAR over the first ~3 s as this driver's "open" baseline, and use 72% of it as the threshold. Fixed thresholds fail across face shapes and camera angles.
 - **Smoothing.** An EMA (exponential moving average, a 1-pole IIR low-pass filter) removes landmark jitter.
-- **PERCLOS.** The fraction of the last N seconds with eyes closed. This is the fatigue measure from NHTSA research; the industry uses it at roughly 15% and above.
+- **PERCLOS.** The fraction of the last N seconds with eyes closed. A widely used fatigue measure from NHTSA-funded research. Alarm thresholds vary between studies and products; we use 15% over 20 s, a choice that still needs validating on drowsy-driver data.
 - **Head pose via PnP.** Given 6 2-D landmarks and a generic 3-D face model, `solvePnP` finds the rotation and translation that best project the 3-D points onto the 2-D ones. Rodrigues converts that to a rotation matrix, then to yaw, pitch and roll.
 - **Hysteresis state machine.** The driver enters "drowsy" at PERCLOS > 15% and leaves at < 8%. Microsleep means eyes closed ≥ 1 s. Distracted means the head is turned or pitched down for ≥ 2 s.
 
@@ -67,7 +67,19 @@ Read it alongside the code: every module's docstring is a short version of its s
 
 **Interview Q.** *Why do production DMS use infrared cameras?* (They work at night, see through sunglasses, and give consistent illumination. The 940 nm IR is invisible to the driver.)
 
-**Exercise.** Validate on the **NTHU-DDD** or **DMD** dataset: compute precision and recall of the "drowsy" state against the labels.
+### 4b. What evaluation taught us (Eyeblink8, our first real dataset)
+We evaluated eye-closure detection on **Eyeblink8**: 8 videos, 4 people, 71,748 frames, 408 hand-labelled blinks, with per-frame "eye fully closed" flags. Full table: `eval/results/eyeblink8.md`.
+
+- **Leave-one-person-out cross-validation.** With only 4 people, a random frame split would put the same person's frames in both train and test, and the model would learn *that person's eyes*. Holding out a whole person measures what matters: performance on a driver it has never seen. Thresholds were picked with an *inner* leave-one-person-out on the 3 training people, so the test person influences nothing (nested cross-validation).
+- **The rule that "looked fine" wasn't.** The original calibrated-EAR rule scored blink F1 0.91, which sounds good. But its frame-level closed-eye F1 was only 0.50: it called many half-closed or looking-down frames "closed". PERCLOS, which drives the alerts, depends on frame-level accuracy, so it ran 4.5 points too high, and the system would have raised **~33 false microsleep alerts per hour on wide-awake people**. *Lesson: evaluate the metric your product actually consumes, not the one that's easiest to report.*
+- **Temporal windows + feature fusion.** A gradient-boosted classifier over a 13-frame window (EAR normalized two ways, MediaPipe's eyeBlink blendshape, head pitch) reached blink F1 **0.949**, PERCLOS error **0.56 points**, and **0** false microsleeps per hour (held-out people).
+- **Robustness beats a small F1 gain.** Logistic regression on EAR windows scored almost as well (F1 0.940), but its false-alarm rate swung from 0 to 16.6 per hour depending on the threshold. The boosted trees stayed at F1 0.946–0.951 with zero false microsleeps for every threshold from 0.1 to 0.9.
+- **A strong free baseline.** MediaPipe's own eyeBlink score, with no training, already fixed the false alarms (PERCLOS error 0.41, the best of all), but missed partial blinks (recall 0.855). It's now the fallback when the trained model file is absent.
+- **Training/serving skew.** The live `DriverMonitor` and the offline evaluation build features with the *same* function (`perception/eye_state.py: window_features`), and `eval/verify_online.py` checks the live system reproduces offline decisions frame for frame (100% agreement). Models that behave differently in production than in evaluation are one of the most common real-world ML failures.
+
+**Limits.** 4 people, 40 minutes, indoors, awake people at a desk. This validates **eye-closure detection**, not drowsiness detection, which needs drowsy subjects (UTA-RLDD, NTHU-DDD, DMD).
+
+**Exercise.** Run the same evaluation on UTA-RLDD (alert vs. drowsy videos) and report ROC-AUC of PERCLOS for separating them.
 
 ## 5. Streaming voice activity detection (Silero VAD)
 A ~2 MB recurrent network scores each 32 ms chunk for speech probability, carrying state between chunks (so each chunk is O(1)). We add **hysteresis** (start above 0.5, end below 0.35), a **hangover** (600 ms of silence ends the utterance) and a **pre-roll** (300 ms before onset, so the first syllable isn't clipped).
@@ -124,6 +136,8 @@ Decision-level sensor fusion: workload = f(TTC, driver state, vulnerable road us
 - **Backpressure (latest-frame-wins).** If a stage is busy, the new frame is dropped rather than queued. A queue in a real-time system just turns into latency. Watch the "dropped" counter: when the VLM is answering, YOLO and the VLM contend for the same GPU and road FPS dips. On a car you'd pin perception to a dedicated accelerator (DLA/NPU).
 - **Client backpressure.** The browser skips frames when `ws.bufferedAmount` grows.
 - **Binary protocol.** Raw JPEG/PCM with a 1-byte type header (base64 would add 33% overhead).
+- **Deterministic resource cleanup (a real bug we hit).** After a camera session ended, the road stage of the *next* session froze forever. A stack dump (`kill -USR1 <pid>`, via `faulthandler`) showed why: Python's garbage collector ran MediaPipe's `__del__` → `close()` *inside the road thread*, in the middle of PyTorch loading YOLO weights, and `close()` waited on an internal thread that never answered. Fix: close native resources explicitly, on their own thread, when a session ends, and never leave it to the garbage collector.
+- **Watchdogs.** Backpressure had made the freeze *silent*: frames were just "dropped". Now a perception stage busy for more than 5 s is reported and replaced with a fresh worker. Safety-relevant pipelines need to detect their own stalls.
 
 ---
 
@@ -131,7 +145,7 @@ Decision-level sensor fusion: workload = f(TTC, driver state, vulnerable road us
 | Stage | Latency |
 |---|---|
 | YOLO11n + ByteTrack + TTC | 9–18 ms / frame |
-| Face landmarks + EAR/PERCLOS/pose | 3–6 ms / frame |
+| Face landmarks + eye-state model + PERCLOS/pose | ~6.6 ms median, 9 ms p95 / frame |
 | CLIP keyframe embedding | ~18 ms |
 | Whisper turbo (3 s utterance) | ~0.5–0.6 s |
 | Qwen2.5-VL-3B 4-bit answer | ~1.6–2.2 s (prefill ~1000 tokens, decode ~110 tok/s) |
