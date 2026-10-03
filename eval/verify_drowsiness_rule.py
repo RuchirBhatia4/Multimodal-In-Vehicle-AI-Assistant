@@ -34,7 +34,7 @@ def online_alerts(score: np.ndarray, face: np.ndarray, step: int = 1) -> int:
 
 
 rows = []
-for v in load_videos(folds={"Fold3_part2", "Fold5_part1"}):
+for v in load_videos(folds={"Fold3_part2", "Fold5_part1", "Fold2_part1"}):
     face = v["face"] > 0.5
     score = np.nan_to_num((v["eyeBlinkLeft"] + v["eyeBlinkRight"]) / 2)
     rows.append((f"rldd {v['fold']} {v['pid']}/{v['label']}", score, face))

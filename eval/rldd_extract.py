@@ -29,6 +29,9 @@ from drivemind.config import ROOT
 OUT = ROOT / "data" / "features"
 TMP = ROOT / "data" / "rldd" / "tmp"
 VIDEO_EXT = (".mp4", ".mov", ".m4v", ".avi", ".mkv", ".3gp")
+# Third-party Kaggle mirror of the same files (byte sizes verified against the official
+# Google Drive zips); has per-video files, so it avoids Drive's per-zip download quota.
+KAGGLE_DATASET = "rishab260/uta-reallife-drowsiness-dataset"
 BLENDSHAPES = ["eyeBlinkLeft", "eyeBlinkRight", "eyeSquintLeft", "eyeSquintRight", "eyeLookDownLeft", "eyeLookDownRight"]
 
 
@@ -40,6 +43,50 @@ def parse_member(name: str) -> tuple[str, int, str] | None:
 
 
 def process_video(zip_path: str, member: str, pid: str, label: int, part: str = "") -> str:
+    """Zip source: extract one member, featurize it, delete it."""
+    out = OUT / f"rldd_{pid}_{label}{part}.npz"
+    if out.exists():
+        return f"{pid}/{label}{part}: cached"
+    job_dir = TMP / f"{pid}_{label}{part}"  # one folder per job: parallel extracts must not race on mkdir
+    job_dir.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(zip_path) as z:
+        path = z.extract(member, job_dir)
+    try:
+        return featurize(path, out, pid, label, part, member.split("/")[0])
+    finally:
+        os.remove(path)
+
+
+def process_kaggle_video(name: str, pid: str, label: int, part: str = "") -> str:
+    """Kaggle source (per-video files): download one video, featurize it, delete it."""
+    import glob
+    import subprocess
+
+    out = OUT / f"rldd_{pid}_{label}{part}.npz"
+    if out.exists():
+        return f"{pid}/{label}{part}: cached"
+    job_dir = TMP / f"k_{pid}_{label}{part}"
+    job_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        r = subprocess.run([str(ROOT / ".venv" / "bin" / "kaggle"), "datasets", "download", KAGGLE_DATASET,
+                            "-f", name, "-p", str(job_dir), "--unzip", "-q"], capture_output=True, text=True)
+        # Kaggle serves single files wrapped in a zip (e.g. "10.mp4.zip"), and --unzip does not
+        # unwrap single-file downloads in CLI 2.x, so unwrap it here.
+        for zpath in glob.glob(str(job_dir / "**" / "*.zip"), recursive=True):
+            with zipfile.ZipFile(zpath) as z:
+                z.extractall(job_dir)
+            os.remove(zpath)
+        vids = [f for f in glob.glob(str(job_dir / "**" / "*"), recursive=True) if f.lower().endswith(VIDEO_EXT)]
+        if r.returncode != 0 or not vids:
+            raise RuntimeError(f"kaggle download failed for {name}: {(r.stderr or r.stdout)[-300:]}")
+        return featurize(vids[0], out, pid, label, part, name.split("/")[0])
+    finally:
+        import shutil
+
+        shutil.rmtree(job_dir, ignore_errors=True)
+
+
+def featurize(path: str, out, pid: str, label: int, part: str, fold: str) -> str:
     import cv2
     import mediapipe as mp
     from mediapipe.tasks.python import BaseOptions, vision
@@ -47,15 +94,8 @@ def process_video(zip_path: str, member: str, pid: str, label: int, part: str = 
     from drivemind.config import settings
     from drivemind.perception.driver import LEFT_EYE, RIGHT_EYE, _ear, _head_pose, _mar
 
-    out = OUT / f"rldd_{pid}_{label}{part}.npz"
-    if out.exists():
-        return f"{pid}/{label}{part}: cached"
     t0 = time.perf_counter()
-    job_dir = TMP / f"{pid}_{label}{part}"  # one folder per job: parallel extracts must not race on mkdir
-    job_dir.mkdir(parents=True, exist_ok=True)
-    with zipfile.ZipFile(zip_path) as z:
-        path = z.extract(member, job_dir)
-    try:
+    if True:  # (kept for a minimal diff of the body below)
         cap = cv2.VideoCapture(path)
         fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
         lm_opts = vision.FaceLandmarkerOptions(
@@ -99,25 +139,45 @@ def process_video(zip_path: str, member: str, pid: str, label: int, part: str = 
         arr = np.array(rows, dtype=np.float32)
         OUT.mkdir(parents=True, exist_ok=True)
         np.savez_compressed(out, **{c: arr[:, k] for k, c in enumerate(cols)}, fps=np.float32(fps), pid=pid, label=label,
-                            fold=member.split("/")[0],
+                            fold=fold,
                             width=size[0] if size else 0, height=size[1] if size else 0)
         dur = arr[-1, 0] if len(arr) else 0
         return (f"{pid}/{label}{part}: {i} frames, {fps:.1f} fps, {dur / 60:.1f} min, face {arr[:, 1].mean():.1%}, "
                 f"{time.perf_counter() - t0:.0f}s")
-    finally:
-        os.remove(path)
+
+
+def kaggle_files(fold_part: str) -> list[str]:
+    import json
+    import urllib.parse
+    import urllib.request
+
+    base = f"https://www.kaggle.com/api/v1/datasets/list/{KAGGLE_DATASET}"
+    names, token = [], None
+    while True:
+        url = base + (f"?pageToken={urllib.parse.quote(token)}" if token else "")
+        d = json.load(urllib.request.urlopen(url, timeout=30))
+        names += [f["name"] for f in d.get("datasetFiles", [])]
+        token = d.get("nextPageTokenNullable")
+        if not token:
+            return [n for n in names if n.startswith(fold_part + "/")]
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("zip")
+    ap.add_argument("zip", nargs="?", help="official fold zip (Google Drive)")
+    ap.add_argument("--kaggle-part", help="e.g. Fold2_part1: fetch videos one by one from the Kaggle mirror instead")
     ap.add_argument("--workers", type=int, default=4)
     args = ap.parse_args()
-    with zipfile.ZipFile(args.zip) as z:
-        jobs = [(m, *parse_member(m)) for m in z.namelist() if parse_member(m)]
+    if args.kaggle_part:
+        jobs = [(n, *parse_member(n)) for n in kaggle_files(args.kaggle_part) if parse_member(n)]
+        submit = lambda ex, m, p, lab, part: ex.submit(process_kaggle_video, m, p, lab, part)  # noqa: E731
+    else:
+        with zipfile.ZipFile(args.zip) as z:
+            jobs = [(m, *parse_member(m)) for m in z.namelist() if parse_member(m)]
+        submit = lambda ex, m, p, lab, part: ex.submit(process_video, args.zip, m, p, lab, part)  # noqa: E731
     print(f"{len(jobs)} videos: {sorted({j[1] for j in jobs})}", flush=True)
     with ProcessPoolExecutor(args.workers) as ex:
-        futs = [ex.submit(process_video, args.zip, m, p, lab, part) for m, p, lab, part in jobs]
+        futs = [submit(ex, m, p, lab, part) for m, p, lab, part in jobs]
         for f in as_completed(futs):
             try:
                 print(f.result(), flush=True)

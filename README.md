@@ -140,6 +140,34 @@ within 60 s, or one closure ≥ 1 s.
 
 Full table: [eval/results/rldd_heldout_test.md](eval/results/rldd_heldout_test.md).
 
+### Second held-out test (pre-registered, 6 more unseen people)
+
+Same frozen rules, no re-tuning, plan committed (`ff46dae`) before the data was downloaded
+(RLDD fold 2, part 1, via a Kaggle mirror whose files match the official ones byte-for-byte).
+
+| On 6 more new people (3.1 h) | False alerts/h, alert videos | Drowsy videos alerted | People alerted more when drowsy |
+|---|---|---|---|
+| Previous rule (PERCLOS > 15% + microsleep) | 4.1 | 4/6 | 3/6 |
+| **Shipped rule** | **1.0** | **5/6** | **5/6** |
+| Exploratory: any closure ≥ 0.7 s | 3.0 | 5/6 | 4/6 |
+
+**Pooled over both held-out tests (12 unseen people, 6.4 h):**
+
+| Rule | False alerts in 2.0 h of alert driving | Drowsy drivers caught (95% CI) |
+|---|---|---|
+| Previous rule | 4 | 9/12 (47–91%) |
+| **Shipped rule** | **1** | **10/12 (55–95%)** |
+| Exploratory | 5 | 11/12 (65–99%) |
+
+The shipped rule is ahead on both detection and false alarms, but with 12 people the intervals
+overlap heavily: consistent with an improvement, not proof of one. Two of the 12 drowsy drivers
+barely closed their eyes at all, so no eye-closure rule caught them; that's the case for adding other cues.
+
+**More training data helped the classifier, modestly:** trained on 6 people it scored 8/18 videos
+(44%) on these new people; trained on 12 it scored 10/18 (56%, 95% CI 34–75%), window AUC 0.83 → 0.89.
+That's still near human judges (58%) and below the paper's 65% (trained on 48 people), so it isn't shipped.
+Results: [second test](eval/results/rldd_heldout_test_Fold2_part1.md), [pooled](eval/results/rldd_heldout_pooled.md).
+
 ```bash
 .venv/bin/gdown -O data/rldd/Fold3_part2.zip 1LZU5KfJkFMj2pIkGwb3RjHDazoUfxSYQ   # 7.5 GB
 .venv/bin/python -m eval.rldd_extract data/rldd/Fold3_part2.zip --workers 4      # ~10 min
@@ -148,6 +176,10 @@ Full table: [eval/results/rldd_heldout_test.md](eval/results/rldd_heldout_test.m
 .venv/bin/python -m eval.rldd_extract data/rldd/Fold5_part1.zip --workers 4
 .venv/bin/python -m eval.drowsy_rule test          # uses the frozen preregistration.json
 .venv/bin/python -m eval.verify_drowsiness_rule    # live rule == evaluated rule
+# second held-out test: per-video download from the Kaggle mirror (needs a Kaggle token in ~/.kaggle/)
+.venv/bin/python -m eval.rldd_extract --kaggle-part Fold2_part1 --workers 4
+.venv/bin/python -m eval.drowsy_rule test --test-fold Fold2_part1 --extra-train Fold5_part1
+.venv/bin/python -m eval.drowsy_rule pooled
 ```
 
 ## Quick start

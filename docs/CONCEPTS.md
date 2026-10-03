@@ -95,7 +95,11 @@ With 6 people, *any* rule you tune will look good on them. So: choose on develop
 - **Don't drop inconvenient test data.** One test video was 288×162 pixels with a face visible only 72% of the time. No exclusion rule was pre-registered, so it stayed in.
 - **Sensitivity vs. false alarms.** The exploratory "any closure ≥ 0.7 s" rule caught 6/6 drowsy people but cost ~2 false alarms per hour on alert drivers. Choosing between them is a product decision (how much nagging buys how much safety), and the data's job is to make the trade-off visible.
 
-**Exercise.** Process a third fold and re-test both rules. Does the tie hold, and does the exploratory rule's false-alarm rate stay near 2/h?
+- **Replication.** A second pre-registered test on 6 more people didn't just repeat the tie: the shipped rule beat the old one (5/6 vs 4/6 detected, 1.0 vs 4.1 false alerts/h). Pooled over 12 unseen people it's 10/12 vs 9/12 detected, with 1 vs 4 false alerts. One test can mislead in either direction; agreement across independent tests is what builds confidence. Even so, the 95% intervals (55–95% vs 47–91%) still overlap, so the honest claim is "consistently ahead", not "proven better".
+- **Learning curves.** The same classifier trained on 6 vs 12 people scored 44% vs 56% on the new people (AUC 0.83 vs 0.89). More data helped, which says the model is data-starved rather than badly designed, and that the 72% cross-validation figure on 6 people was optimism.
+- **Operational lesson.** Google Drive caps downloads per file per day, and our quick "is it available?" probe started a real download that used up the last one. The fix was a mirror with per-video files, verified byte-for-byte against the official zips before trusting it.
+
+**Exercise.** Add a non-eye cue (yawning, head nodding, or slower blink *re-opening* speed) and test whether it catches the drowsy drivers who barely close their eyes, using the same pre-registration routine.
 
 ## 5. Streaming voice activity detection (Silero VAD)
 A ~2 MB recurrent network scores each 32 ms chunk for speech probability, carrying state between chunks (so each chunk is O(1)). We add **hysteresis** (start above 0.5, end below 0.35), a **hangover** (600 ms of silence ends the utterance) and a **pre-roll** (300 ms before onset, so the first syllable isn't clipped).

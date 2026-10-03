@@ -1,0 +1,561 @@
+{
+  "test_fold": "Fold2_part1",
+  "preregistration": {
+    "date": "2026-10-03",
+    "development_data": "UTA-RLDD Fold3_part2 (participants ['31', '32', '33', '34', '35', '36'])",
+    "test_data": "UTA-RLDD Fold5_part1 (not yet downloaded/processed when this file was written)",
+    "frozen_rule": {
+      "detector": "mediapipe_blink",
+      "min_closure_s": 0.5,
+      "k_per_60s": 4,
+      "window_s": 60.0,
+      "cooldown_s": 60.0,
+      "microsleep_s": 1.0
+    },
+    "exploratory_rule": {
+      "detector": "mediapipe_blink",
+      "min_closure_s": 0.7,
+      "k_per_60s": 1,
+      "window_s": 60.0,
+      "cooldown_s": 60.0,
+      "microsleep_s": 1.0
+    },
+    "dev_result_exploratory_rule": {
+      "false_alerts_per_h_on_alert_videos": 0.8636890719341036,
+      "drowsy_videos_with_alert": "6/6",
+      "drowsy_detected": 6,
+      "people_alerted_more_when_drowsy": "6/6",
+      "within": 6,
+      "alerts_per_h_by_state": {
+        "alert": 0.8636890719341036,
+        "low vigilant": 10.663419370232933,
+        "drowsy": 30.044150902760332
+      },
+      "per_video": {
+        "31/0": 0,
+        "31/5": 5,
+        "31/10": 9,
+        "32/0": 1,
+        "32/5": 3,
+        "32/10": 1,
+        "33/0": 0,
+        "33/5": 2,
+        "33/10": 8,
+        "34/0": 0,
+        "34/5": 0,
+        "34/10": 1,
+        "35/0": 0,
+        "35/5": 1,
+        "35/10": 8,
+        "36/0": 0,
+        "36/5": 1,
+        "36/10": 4
+      },
+      "eyeblink8_false_alerts_per_h": 4.515805318615153
+    },
+    "selection_objective": "false alerts <= 1/h on dev alert videos AND on Eyeblink8 awake people; then max drowsy videos alerted; then max people alerted more when drowsy; then fewest false alerts; then highest drowsy alert rate",
+    "objective_revision_note": "First selection run (dev-only limit) picked mediapipe_blink L=0.7 K=1, which alerted 4.5/h on Eyeblink8 awake people; the Eyeblink8 limit was added before any test data was downloaded or processed. That rule is kept as the exploratory comparison.",
+    "dev_result_frozen_rule": {
+      "false_alerts_per_h_on_alert_videos": 0.0,
+      "drowsy_videos_with_alert": "4/6",
+      "drowsy_detected": 4,
+      "people_alerted_more_when_drowsy": "4/6",
+      "within": 4,
+      "alerts_per_h_by_state": {
+        "alert": 0.0,
+        "low vigilant": 9.774801089380189,
+        "drowsy": 28.105818586453214
+      },
+      "per_video": {
+        "31/0": 0,
+        "31/5": 5,
+        "31/10": 9,
+        "32/0": 0,
+        "32/5": 3,
+        "32/10": 0,
+        "33/0": 0,
+        "33/5": 2,
+        "33/10": 9,
+        "34/0": 0,
+        "34/5": 0,
+        "34/10": 0,
+        "35/0": 0,
+        "35/5": 1,
+        "35/10": 8,
+        "36/0": 0,
+        "36/5": 0,
+        "36/10": 3
+      },
+      "eyeblink8_false_alerts_per_h": 0.0
+    },
+    "dev_result_shipped_baseline": {
+      "false_alerts_per_h_on_alert_videos": 0.8636890719341036,
+      "drowsy_videos_with_alert": "4/6",
+      "drowsy_detected": 4,
+      "people_alerted_more_when_drowsy": "4/6",
+      "within": 4,
+      "alerts_per_h_by_state": {
+        "alert": 0.8636890719341036,
+        "low vigilant": 16.883747336202145,
+        "drowsy": 80.4407911267454
+      },
+      "per_video": {
+        "31/0": 1,
+        "31/5": 16,
+        "31/10": 39,
+        "32/0": 0,
+        "32/5": 0,
+        "32/10": 0,
+        "33/0": 0,
+        "33/5": 1,
+        "33/10": 35,
+        "34/0": 0,
+        "34/5": 0,
+        "34/10": 5,
+        "35/0": 0,
+        "35/5": 2,
+        "35/10": 4,
+        "36/0": 0,
+        "36/5": 0,
+        "36/10": 0
+      }
+    },
+    "eyeblink8_awake_false_alerts_per_h": 0.0,
+    "frozen_classifier": {
+      "model": "StandardScaler + LogisticRegression(C=0.5, class_weight=balanced)",
+      "features": "eval.rldd_eval.WINDOW_FEATURES on 60 s windows (trained eye model)",
+      "train_on": "Fold3_part2",
+      "video_decision": "soft vote (mean class probability over windows)"
+    },
+    "grid_size": 70,
+    "candidates_meeting_false_alert_limit": 39,
+    "ship_criterion": "Replace the shipped drowsiness alert with the primary frozen rule only if, on the held-out test people, it has <= 1 false alert per hour on alert videos AND alerts on at least as many drowsy videos as the shipped rule. Decided before the test evaluation ran.",
+    "second_test": {
+      "written": "2026-10-03, before any third RLDD part was downloaded (Google Drive quota blocked all parts at the time)",
+      "test_people": "the next UTA-RLDD part obtained, whichever fold it is; its participants must not include 31-36 or 49-54 (enforced by an assertion in eval/drowsy_rule.py)",
+      "rules": "unchanged: frozen_rule (shipped), exploratory_rule, and the previous PERCLOS rule as baseline; no re-tuning",
+      "classifier": "same frozen configuration, trained twice: (a) on the 6 development people, (b) on development + first test people (12); both evaluated on the new people",
+      "questions": [
+        "Does the shipped rule keep false alerts <= 1/h on alert videos and detection >= the previous rule?",
+        "Does training the classifier on 12 instead of 6 people improve held-out video accuracy (was 56% with 6)?"
+      ],
+      "reporting": "per-test results plus a pooled table over all held-out people (eval/drowsy_rule.py pooled), with 95% Wilson intervals; report whatever comes out, including if the rule does worse",
+      "exclusions": "none: every video in the part is used, including low-resolution or partial-face ones"
+    }
+  },
+  "test_people": [
+    "13",
+    "14",
+    "15",
+    "16",
+    "17",
+    "18"
+  ],
+  "test_hours": 3.067425925925926,
+  "test_source_fps": {
+    "13/0": 29.8,
+    "13/5": 29.8,
+    "13/10": 29.8,
+    "14/0": 30.0,
+    "14/5": 29.8,
+    "14/10": 30.0,
+    "15/0": 30.0,
+    "15/5": 30.0,
+    "15/10": 30.0,
+    "16/0": 24.0,
+    "16/5": 24.0,
+    "16/10": 24.0,
+    "17/0": 30.0,
+    "17/5": 30.0,
+    "17/10": 29.9,
+    "18/0": 19.4,
+    "18/5": 14.9,
+    "18/10": 12.0
+  },
+  "frozen_rule_on_test": {
+    "false_alerts_per_h_on_alert_videos": 1.0144655269584821,
+    "drowsy_videos_with_alert": "5/6",
+    "drowsy_detected": 5,
+    "people_alerted_more_when_drowsy": "5/6",
+    "within": 5,
+    "alerts_per_h_by_state": {
+      "alert": 1.0144655269584821,
+      "low vigilant": 15.22587694178393,
+      "drowsy": 21.34176464776208
+    },
+    "per_video": {
+      "13/0": 0,
+      "13/5": 1,
+      "13/10": 6,
+      "14/0": 0,
+      "14/5": 7,
+      "14/10": 1,
+      "15/0": 1,
+      "15/5": 0,
+      "15/10": 2,
+      "16/0": 0,
+      "16/5": 0,
+      "16/10": 0,
+      "17/0": 0,
+      "17/5": 1,
+      "17/10": 4,
+      "18/0": 0,
+      "18/5": 7,
+      "18/10": 9
+    }
+  },
+  "shipped_baseline_on_test": {
+    "false_alerts_per_h_on_alert_videos": 4.0578621078339285,
+    "drowsy_videos_with_alert": "4/6",
+    "drowsy_detected": 4,
+    "people_alerted_more_when_drowsy": "3/6",
+    "within": 3,
+    "alerts_per_h_by_state": {
+      "alert": 4.0578621078339285,
+      "low vigilant": 17.12911155950692,
+      "drowsy": 45.59376992930989
+    },
+    "per_video": {
+      "13/0": 0,
+      "13/5": 3,
+      "13/10": 6,
+      "14/0": 0,
+      "14/5": 0,
+      "14/10": 0,
+      "15/0": 4,
+      "15/5": 4,
+      "15/10": 2,
+      "16/0": 0,
+      "16/5": 0,
+      "16/10": 0,
+      "17/0": 0,
+      "17/5": 1,
+      "17/10": 6,
+      "18/0": 0,
+      "18/5": 10,
+      "18/10": 33
+    }
+  },
+  "exploratory_rule_on_test": {
+    "false_alerts_per_h_on_alert_videos": 3.0433965808754464,
+    "drowsy_videos_with_alert": "5/6",
+    "drowsy_detected": 5,
+    "people_alerted_more_when_drowsy": "4/6",
+    "within": 4,
+    "alerts_per_h_by_state": {
+      "alert": 3.0433965808754464,
+      "low vigilant": 18.080728868368418,
+      "drowsy": 24.252005281547817
+    },
+    "per_video": {
+      "13/0": 0,
+      "13/5": 3,
+      "13/10": 7,
+      "14/0": 0,
+      "14/5": 9,
+      "14/10": 3,
+      "15/0": 3,
+      "15/5": 0,
+      "15/10": 2,
+      "16/0": 0,
+      "16/5": 0,
+      "16/10": 0,
+      "17/0": 0,
+      "17/5": 1,
+      "17/10": 4,
+      "18/0": 0,
+      "18/5": 6,
+      "18/10": 9
+    }
+  },
+  "classifier_on_test": {
+    "video_accuracy_3class": "8/18 = 44.4% (95% CI 25%-66%)",
+    "window_auc_alert_vs_drowsy": 0.8347953216374269,
+    "video_predictions": [
+      [
+        "13",
+        0,
+        0
+      ],
+      [
+        "13",
+        5,
+        0
+      ],
+      [
+        "13",
+        10,
+        10
+      ],
+      [
+        "14",
+        0,
+        0
+      ],
+      [
+        "14",
+        5,
+        10
+      ],
+      [
+        "14",
+        10,
+        5
+      ],
+      [
+        "15",
+        0,
+        5
+      ],
+      [
+        "15",
+        5,
+        5
+      ],
+      [
+        "15",
+        10,
+        5
+      ],
+      [
+        "16",
+        0,
+        0
+      ],
+      [
+        "16",
+        5,
+        0
+      ],
+      [
+        "16",
+        10,
+        10
+      ],
+      [
+        "17",
+        0,
+        5
+      ],
+      [
+        "17",
+        5,
+        5
+      ],
+      [
+        "17",
+        10,
+        5
+      ],
+      [
+        "18",
+        0,
+        5
+      ],
+      [
+        "18",
+        5,
+        10
+      ],
+      [
+        "18",
+        10,
+        10
+      ]
+    ]
+  },
+  "classifiers_on_test": {
+    "6 development people": {
+      "video_accuracy_3class": "8/18 = 44.4% (95% CI 25%-66%)",
+      "window_auc_alert_vs_drowsy": 0.8347953216374269,
+      "video_predictions": [
+        [
+          "13",
+          0,
+          0
+        ],
+        [
+          "13",
+          5,
+          0
+        ],
+        [
+          "13",
+          10,
+          10
+        ],
+        [
+          "14",
+          0,
+          0
+        ],
+        [
+          "14",
+          5,
+          10
+        ],
+        [
+          "14",
+          10,
+          5
+        ],
+        [
+          "15",
+          0,
+          5
+        ],
+        [
+          "15",
+          5,
+          5
+        ],
+        [
+          "15",
+          10,
+          5
+        ],
+        [
+          "16",
+          0,
+          0
+        ],
+        [
+          "16",
+          5,
+          0
+        ],
+        [
+          "16",
+          10,
+          10
+        ],
+        [
+          "17",
+          0,
+          5
+        ],
+        [
+          "17",
+          5,
+          5
+        ],
+        [
+          "17",
+          10,
+          5
+        ],
+        [
+          "18",
+          0,
+          5
+        ],
+        [
+          "18",
+          5,
+          10
+        ],
+        [
+          "18",
+          10,
+          10
+        ]
+      ]
+    },
+    "12 people (development + earlier test)": {
+      "video_accuracy_3class": "10/18 = 55.6% (95% CI 34%-75%)",
+      "window_auc_alert_vs_drowsy": 0.8888888888888888,
+      "video_predictions": [
+        [
+          "13",
+          0,
+          0
+        ],
+        [
+          "13",
+          5,
+          5
+        ],
+        [
+          "13",
+          10,
+          10
+        ],
+        [
+          "14",
+          0,
+          0
+        ],
+        [
+          "14",
+          5,
+          10
+        ],
+        [
+          "14",
+          10,
+          5
+        ],
+        [
+          "15",
+          0,
+          5
+        ],
+        [
+          "15",
+          5,
+          5
+        ],
+        [
+          "15",
+          10,
+          5
+        ],
+        [
+          "16",
+          0,
+          0
+        ],
+        [
+          "16",
+          5,
+          0
+        ],
+        [
+          "16",
+          10,
+          10
+        ],
+        [
+          "17",
+          0,
+          0
+        ],
+        [
+          "17",
+          5,
+          5
+        ],
+        [
+          "17",
+          10,
+          5
+        ],
+        [
+          "18",
+          0,
+          5
+        ],
+        [
+          "18",
+          5,
+          10
+        ],
+        [
+          "18",
+          10,
+          10
+        ]
+      ]
+    }
+  }
+}
