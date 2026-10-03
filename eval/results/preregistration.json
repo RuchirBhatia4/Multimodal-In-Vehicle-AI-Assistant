@@ -126,5 +126,6 @@
     "video_decision": "soft vote (mean class probability over windows)"
   },
   "grid_size": 70,
-  "candidates_meeting_false_alert_limit": 39
+  "candidates_meeting_false_alert_limit": 39,
+  "ship_criterion": "Replace the shipped drowsiness alert with the primary frozen rule only if, on the held-out test people, it has <= 1 false alert per hour on alert videos AND alerts on at least as many drowsy videos as the shipped rule. Decided before the test evaluation ran."
 }
