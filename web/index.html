@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DriveMind</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div id="alert-frame" class="alert-frame"></div>
+  <div id="alert-banner" class="alert-banner"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" class="logo" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 2.2a6.8 6.8 0 0 1 6.6 5.3h-3.5a3.3 3.3 0 0 0-6.2 0H5.4A6.8 6.8 0 0 1 12 5.2Zm-1.3 13.5a6.8 6.8 0 0 1-5.3-6h3.5a3.3 3.3 0 0 0 1.8 2.4Zm2.6 0v-3.6a3.3 3.3 0 0 0 1.8-2.4h3.5a6.8 6.8 0 0 1-5.3 6Z"/></svg>
+      <span>DriveMind</span>
+      <small>multimodal co-pilot</small>
+    </div>
+    <div id="model-status" class="model-status"></div>
+    <div class="controls">
+      <label>Brain
+        <select id="brain-mode">
+          <option value="auto">Auto (route)</option>
+          <option value="local">On-device VLM</option>
+          <option value="claude">Claude (cloud)</option>
+        </select>
+      </label>
+      <label>Mic
+        <select id="listen-mode">
+          <option value="ptt">Push-to-talk</option>
+          <option value="handsfree">Hands-free (VAD)</option>
+        </select>
+      </label>
+      <span id="conn" class="conn">connecting…</span>
+    </div>
+  </header>
+
+  <main class="grid">
+    <!-- ROAD -->
+    <section class="panel road">
+      <div class="panel-head">
+        <h2>Road camera</h2>
+        <div class="src">
+          <select id="road-source"></select>
+          <label class="file-btn">Load dashcam video<input id="road-file" type="file" accept="video/*" hidden /></label>
+        </div>
+      </div>
+      <div class="view" id="road-view">
+        <video id="road-video" muted playsinline loop></video>
+        <canvas id="road-overlay"></canvas>
+        <div class="placeholder" id="road-placeholder">Pick a camera or load a dashcam video (any driving clip works)</div>
+        <div class="hud">
+          <span id="road-fps">– fps</span><span id="road-ms">– ms</span><span id="road-drop">0 dropped</span><span id="mem-count">0 keyframes</span>
+        </div>
+        <div id="fcw" class="fcw"></div>
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--c-car)"></i>vehicle</span>
+        <span><i style="background:var(--c-person)"></i>person / cyclist</span>
+        <span><i style="background:var(--c-sign)"></i>sign / light</span>
+        <span><i style="background:var(--crit)"></i>collision threat</span>
+        <span class="muted">dashed region = ego corridor</span>
+      </div>
+    </section>
+
+    <!-- CABIN -->
+    <section class="panel cabin">
+      <div class="panel-head">
+        <h2>Driver monitor</h2>
+        <div class="src"><select id="cabin-source"></select><button id="recal" class="ghost">Recalibrate</button></div>
+      </div>
+      <div class="view small" id="cabin-view">
+        <video id="cabin-video" muted playsinline class="mirror"></video>
+        <canvas id="cabin-overlay" class="mirror"></canvas>
+        <div class="hud"><span id="cabin-fps">– fps</span><span id="cabin-ms">– ms</span></div>
+      </div>
+      <div class="driver-state">
+        <div id="dstate" class="dstate">—</div>
+        <div class="metrics">
+          <div class="metric"><label>Eye aspect ratio</label><canvas id="ear-spark" width="300" height="56"></canvas></div>
+          <div class="metric row">
+            <div><label>PERCLOS</label><div class="bar"><div id="perclos-bar"></div></div><span id="perclos">–</span></div>
+            <div><label>Yawns (2 min)</label><b id="yawns">–</b></div>
+          </div>
+          <div class="metric row">
+            <div><label>Yaw</label><b id="yaw">–</b></div>
+            <div><label>Pitch</label><b id="pitch">–</b></div>
+            <div><label>Eyes closed</label><b id="closed">–</b></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ASSISTANT -->
+    <section class="panel assistant">
+      <div class="panel-head"><h2>Assistant</h2><span id="brain-badge" class="badge"></span></div>
+      <div id="chat" class="chat">
+        <div class="msg sys">Hold <kbd>Space</kbd> (or the mic button) and ask something like <em>“How many cars are ahead?”</em>, <em>“I’m cold, and play some jazz”</em>, or <em>“What did that sign say?”</em></div>
+      </div>
+      <div class="latency" id="latency"></div>
+      <form id="ask" class="ask">
+        <button type="button" id="mic" class="mic" title="Hold to talk">
+          <svg viewBox="0 0 24 24"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.9V21h2v-2.1A7 7 0 0 0 19 12h-2Z"/></svg>
+        </button>
+        <input id="text" placeholder="…or type a question" autocomplete="off" />
+        <button type="submit" class="send">Send</button>
+      </form>
+    </section>
+
+    <!-- CAR -->
+    <section class="panel car">
+      <div class="panel-head"><h2>Vehicle</h2></div>
+      <div class="car-grid">
+        <div class="tile"><label>Climate</label><b id="car-temp">–</b><span id="car-fan"></span></div>
+        <div class="tile"><label>Media</label><b id="car-media">–</b><span id="car-vol"></span></div>
+        <div class="tile wide"><label>Navigation</label><b id="car-nav">–</b></div>
+        <div class="tile"><label>Windows</label><span id="car-windows"></span></div>
+        <div class="tile"><label>Seat heat</label><span id="car-seats"></span></div>
+        <div class="tile"><label>Defrost / wipers</label><span id="car-misc"></span></div>
+        <div class="tile wide speed"><label>Simulated speed <b id="speed-val">0 mph</b></label><input type="range" id="speed" min="0" max="85" value="0" /></div>
+      </div>
+      <div id="tool-log" class="tool-log"></div>
+    </section>
+  </main>
+
+  <script src="/static/app.js" type="module"></script>
+</body>
+</html>
