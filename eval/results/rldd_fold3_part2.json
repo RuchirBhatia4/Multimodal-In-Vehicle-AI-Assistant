@@ -1,0 +1,1129 @@
+{
+  "videos": [
+    {
+      "pid": "31",
+      "label": 0,
+      "minutes": 11.3,
+      "source_fps": 25.0,
+      "face_found": 1.0,
+      "yawns_per_h": 0.0,
+      "original_rule": {
+        "perclos": 0.24393946814241638,
+        "blinks_per_min": 52.18668886821098,
+        "mean_blink_s": 0.2811936936936936,
+        "long_closures_per_min": 4.495812723443851,
+        "microsleep_per_h": 10.578382878691414,
+        "drowsy_alerts_per_h": 10.578382878691414
+      },
+      "mediapipe_blink": {
+        "perclos": 0.09305059013663744,
+        "blinks_per_min": 51.92222929624369,
+        "mean_blink_s": 0.10780984719864174,
+        "long_closures_per_min": 0.08815319065576178,
+        "microsleep_per_h": 0.0,
+        "drowsy_alerts_per_h": 10.578382878691414
+      },
+      "trained_gbm": {
+        "perclos": 0.060384935599196825,
+        "blinks_per_min": 44.164748518536655,
+        "mean_blink_s": 0.08236859614105123,
+        "long_closures_per_min": 0.0,
+        "microsleep_per_h": 0.0,
+        "drowsy_alerts_per_h": 5.289191439345707
+      }
+    },
+    {
+      "pid": "31",
+      "label": 5,
+      "minutes": 10.1,
+      "source_fps": 25.0,
+      "face_found": 1.0,
+      "yawns_per_h": 0.0,
+      "original_rule": {
+        "perclos": 0.36400109920307777,
+        "blinks_per_min": 38.680956306677665,
+        "mean_blink_s": 0.5665814151747656,
+        "long_closures_per_min": 6.034624896949712,
+        "microsleep_per_h": 172.13520197856553,
+        "drowsy_alerts_per_h": 11.871393239901073
+      },
+      "mediapipe_blink": {
+        "perclos": 0.2277548777136576,
+        "blinks_per_min": 50.156636438582034,
+        "mean_blink_s": 0.27501643655489805,
+        "long_closures_per_min": 3.6603462489694976,
+        "microsleep_per_h": 124.64962901896125,
+        "drowsy_alerts_per_h": 5.935696619950536
+      },
+      "trained_gbm": {
+        "perclos": 0.17889530090684255,
+        "blinks_per_min": 51.04699093157461,
+        "mean_blink_s": 0.21117571059431525,
+        "long_closures_per_min": 2.769991755976917,
+        "microsleep_per_h": 83.0997526793075,
+        "drowsy_alerts_per_h": 11.871393239901073
+      }
+    },
+    {
+      "pid": "31",
+      "label": 10,
+      "minutes": 10.8,
+      "source_fps": 25.0,
+      "face_found": 1.0,
+      "yawns_per_h": 16.729488304848452,
+      "original_rule": {
+        "perclos": 0.7531884132803222,
+        "blinks_per_min": 14.034181855733978,
+        "mean_blink_s": 3.224282560706402,
+        "long_closures_per_min": 6.970620127020188,
+        "microsleep_per_h": 250.9423245727268,
+        "drowsy_alerts_per_h": 5.576496101616151
+      },
+      "mediapipe_blink": {
+        "perclos": 0.6549284866009191,
+        "blinks_per_min": 21.46950999122218,
+        "mean_blink_s": 1.8347763347763348,
+        "long_closures_per_min": 5.576496101616151,
+        "microsleep_per_h": 189.60086745494914,
+        "drowsy_alerts_per_h": 16.729488304848452
+      },
+      "trained_gbm": {
+        "perclos": 0.26230185366861153,
+        "blinks_per_min": 27.603655702999944,
+        "mean_blink_s": 0.5734006734006734,
+        "long_closures_per_min": 6.227087313471368,
+        "microsleep_per_h": 178.44787525171682,
+        "drowsy_alerts_per_h": 39.035472711313055
+      }
+    },
+    {
+      "pid": "32",
+      "label": 0,
+      "minutes": 15.0,
+      "source_fps": 12.0,
+      "face_found": 1.0,
+      "yawns_per_h": 0.0,
+      "original_rule": {
+        "perclos": 0.024115576958696056,
+        "blinks_per_min": 5.334321170587145,
+        "mean_blink_s": 0.27166666666666667,
+        "long_closures_per_min": 0.6667901463233932,
+        "microsleep_per_h": 0.0,
+        "drowsy_alerts_per_h": 0.0
+      },
+      "mediapipe_blink": {
+        "perclos": 0.008816447490275978,
+        "blinks_per_min": 2.7338395999259117,
+        "mean_blink_s": 0.19349593495934958,
+        "long_closures_per_min": 0.13335802926467863,
+        "microsleep_per_h": 0.0,
+        "drowsy_alerts_per_h": 0.0
+      },
+      "trained_gbm": {
+        "perclos": 0.005112057788479348,
+        "blinks_per_min": 1.9336914243378402,
+        "mean_blink_s": 0.1586206896551724,
+        "long_closures_per_min": 0.13335802926467863,
+        "microsleep_per_h": 0.0,
+        "drowsy_alerts_per_h": 0.0
+      }
+    },
+    {
+      "pid": "32",
+      "label": 5,
+      "minutes": 15.0,
+      "source_fps": 15.3,
+      "face_found": 1.0,
+      "yawns_per_h": 0.0,
+      "original_rule": {
+        "perclos": 0.06741489795162425,
+        "blinks_per_min": 8.134237137459717,
+        "mean_blink_s": 0.49726775956284164,
+        "long_closures_per_min": 2.5336148460940104,
+        "microsleep_per_h": 48.00533392599178,
+        "drowsy_alerts_per_h": 24.00266696299589
+      },
+      "mediapipe_blink": {
+        "perclos": 0.019557728636515167,
+        "blinks_per_min": 4.1337926436270696,
+        "mean_blink_s": 0.2849462365591398,
+        "long_closures_per_min": 0.8000888987665297,
+        "microsleep_per_h": 12.001333481497944,
+        "drowsy_alerts_per_h": 4.000444493832648
+      },
+      "trained_gbm": {
+        "perclos": 0.008963958958402785,
+        "blinks_per_min": 3.800422269141016,
+        "mean_blink_s": 0.14619883040935674,
+        "long_closures_per_min": 0.20002222469163242,
+        "microsleep_per_h": 0.0,
+        "drowsy_alerts_per_h": 0.0
+      }
+    },
+    {
+      "pid": "32",
+      "label": 10,
+      "minutes": 10.1,
+      "source_fps": 20.7,
+      "face_found": 0.999,
+      "yawns_per_h": 0.0,
+      "original_rule": {
+        "perclos": 0.01733465827536712,
+        "blinks_per_min": 3.9748261013580657,
+        "mean_blink_s": 0.26416666666666666,
+        "long_closures_per_min": 0.3974826101358066,
+        "microsleep_per_h": 0.0,
+        "drowsy_alerts_per_h": 0.0
+      },
+      "mediapipe_blink": {
+        "perclos": 0.017886717456111294,
+        "blinks_per_min": 4.17356740642597,
+        "mean_blink_s": 0.25873015873015875,
+        "long_closures_per_min": 0.29811195760185494,
+        "microsleep_per_h": 0.0,
+        "drowsy_alerts_per_h": 0.0
+      },
+      "trained_gbm": {
+        "perclos": 0.0073975930219719556,
+        "blinks_per_min": 2.8817489234845977,
+        "mean_blink_s": 0.15402298850574714,
+        "long_closures_per_min": 0.09937065253395165,
+        "microsleep_per_h": 0.0,
+        "drowsy_alerts_per_h": 0.0
+      }
+    },
+    {
+      "pid": "33",
+      "label": 0,
+      "minutes": 9.8,
+      "source_fps": 30.0,
+      "face_found": 1.0,
+      "yawns_per_h": 0.0,
+      "original_rule": {
+        "perclos": 0.00974780391045622,
+        "blinks_per_min": 2.040238027769907,
+        "mean_blink_s": 0.28666666666666674,
+        "long_closures_per_min": 0.10201190138849534,
+        "microsleep_per_h": 6.1207140833097196,
+        "drowsy_alerts_per_h": 0.0
+      },
+      "mediapipe_blink": {
+        "perclos": 0.004533862283933126,
+        "blinks_per_min": 1.8362142249929159,
+        "mean_blink_s": 0.15185185185185188,
+        "long_closures_per_min": 0.10201190138849534,
+        "microsleep_per_h": 0.0,
+        "drowsy_alerts_per_h": 0.0
+      },
+      "trained_gbm": {
+        "perclos": 0.003173703598753188,
+        "blinks_per_min": 1.8362142249929159,
+        "mean_blink_s": 0.1037037037037037,
+        "long_closures_per_min": 0.0,
+        "microsleep_per_h": 0.0,
+        "drowsy_alerts_per_h": 0.0
+      }
+    },
+    {
+      "pid": "33",
+      "label": 5,
+      "minutes": 10.1,
+      "source_fps": 15.0,
+      "face_found": 0.998,
+      "yawns_per_h": 0.0,
+      "original_rule": {
+        "perclos": 0.060127106935617576,
+        "blinks_per_min": 10.643824260845538,
+        "mean_blink_s": 0.33894080996884735,
+        "long_closures_per_min": 1.1936999171041724,
+        "microsleep_per_h": 23.87399834208345,
+        "drowsy_alerts_per_h": 17.90549875656259
+      },
+      "mediapipe_blink": {
+        "perclos": 0.027852998065764023,
+        "blinks_per_min": 8.753799392097266,
+        "mean_blink_s": 0.19090909090909092,
+        "long_closures_per_min": 0.2984249792760431,
+        "microsleep_per_h": 11.936999171041725,
+        "drowsy_alerts_per_h": 0.0
+      },
+      "trained_gbm": {
+        "perclos": 0.02271345675600995,
+        "blinks_per_min": 8.853274385189279,
+        "mean_blink_s": 0.1543071161048689,
+        "long_closures_per_min": 0.19894998618402876,
+        "microsleep_per_h": 5.9684995855208625,
+        "drowsy_alerts_per_h": 0.0
+      }
+    },
+    {
+      "pid": "33",
+      "label": 10,
+      "minutes": 9.3,
+      "source_fps": 30.0,
+      "face_found": 0.993,
+      "yawns_per_h": 6.420545746388443,
+      "original_rule": {
+        "perclos": 0.24576422329231318,
+        "blinks_per_min": 18.405564472980203,
+        "mean_blink_s": 0.8027131782945737,
+        "long_closures_per_min": 7.062600321027287,
+        "microsleep_per_h": 365.97110754414126,
+        "drowsy_alerts_per_h": 12.841091492776886
+      },
+      "mediapipe_blink": {
+        "perclos": 0.2025444384994947,
+        "blinks_per_min": 18.405564472980203,
+        "mean_blink_s": 0.6612403100775193,
+        "long_closures_per_min": 6.527554842161583,
+        "microsleep_per_h": 301.7656500802568,
+        "drowsy_alerts_per_h": 19.261637239165328
+      },
+      "trained_gbm": {
+        "perclos": 0.16229712858926343,
+        "blinks_per_min": 19.47565543071161,
+        "mean_blink_s": 0.5016483516483515,
+        "long_closures_per_min": 5.778491171749598,
+        "microsleep_per_h": 205.45746388443018,
+        "drowsy_alerts_per_h": 19.261637239165328
+      }
+    },
+    {
+      "pid": "34",
+      "label": 0,
+      "minutes": 12.6,
+      "source_fps": 15.4,
+      "face_found": 1.0,
+      "yawns_per_h": 0.0,
+      "original_rule": {
+        "perclos": 0.012069421196370363,
+        "blinks_per_min": 2.7750858955158137,
+        "mean_blink_s": 0.2638095238095237,
+        "long_closures_per_min": 0.15857633688661793,
+        "microsleep_per_h": 0.0,
+        "drowsy_alerts_per_h": 0.0
+      },
+      "mediapipe_blink": {
+        "perclos": 0.004669192141661528,
+        "blinks_per_min": 1.7443397057527972,
+        "mean_blink_s": 0.16060606060606064,
+        "long_closures_per_min": 0.0,
+        "microsleep_per_h": 0.0,
+        "drowsy_alerts_per_h": 0.0
+      },
+      "trained_gbm": {
+        "perclos": 0.0032155757202008634,
+        "blinks_per_min": 1.5857633688661792,
+        "mean_blink_s": 0.12166666666666666,
+        "long_closures_per_min": 0.0,
+        "microsleep_per_h": 0.0,
+        "drowsy_alerts_per_h": 0.0
+      }
+    },
+    {
+      "pid": "34",
+      "label": 5,
+      "minutes": 11.7,
+      "source_fps": 29.6,
+      "face_found": 1.0,
+      "yawns_per_h": 0.0,
+      "original_rule": {
+        "perclos": 0.06777883698760724,
+        "blinks_per_min": 14.92850333651096,
+        "mean_blink_s": 0.27318007662835253,
+        "long_closures_per_min": 0.857959961868446,
+        "microsleep_per_h": 5.147759771210676,
+        "drowsy_alerts_per_h": 20.591039084842706
+      },
+      "mediapipe_blink": {
+        "perclos": 0.04356530028598665,
+        "blinks_per_min": 14.585319351763582,
+        "mean_blink_s": 0.17980392156862748,
+        "long_closures_per_min": 0.17159199237368922,
+        "microsleep_per_h": 0.0,
+        "drowsy_alerts_per_h": 0.0
+      },
+      "trained_gbm": {
+        "perclos": 0.03079122974261201,
+        "blinks_per_min": 14.499523355576738,
+        "mean_blink_s": 0.1280078895463511,
+        "long_closures_per_min": 0.08579599618684461,
+        "microsleep_per_h": 0.0,
+        "drowsy_alerts_per_h": 0.0
+      }
+    },
+    {
+      "pid": "34",
+      "label": 10,
+      "minutes": 10.2,
+      "source_fps": 30.0,
+      "face_found": 1.0,
+      "yawns_per_h": 11.746791385686318,
+      "original_rule": {
+        "perclos": 0.08048727430933217,
+        "blinks_per_min": 22.51468348923211,
+        "mean_blink_s": 0.21507246376811595,
+        "long_closures_per_min": 0.48944964107026323,
+        "microsleep_per_h": 5.873395692843159,
+        "drowsy_alerts_per_h": 29.366978464215794
+      },
+      "mediapipe_blink": {
+        "perclos": 0.06520556884924951,
+        "blinks_per_min": 22.318903632804002,
+        "mean_blink_s": 0.17558479532163743,
+        "long_closures_per_min": 0.09788992821405264,
+        "microsleep_per_h": 0.0,
+        "drowsy_alerts_per_h": 29.366978464215794
+      },
+      "trained_gbm": {
+        "perclos": 0.051827278659995646,
+        "blinks_per_min": 22.318903632804002,
+        "mean_blink_s": 0.14005847953216377,
+        "long_closures_per_min": 0.09788992821405264,
+        "microsleep_per_h": 0.0,
+        "drowsy_alerts_per_h": 29.366978464215794
+      }
+    },
+    {
+      "pid": "35",
+      "label": 0,
+      "minutes": 10.3,
+      "source_fps": 29.9,
+      "face_found": 0.998,
+      "yawns_per_h": 0.0,
+      "original_rule": {
+        "perclos": 0.08538420204191295,
+        "blinks_per_min": 18.86082751209027,
+        "mean_blink_s": 0.2726495726495727,
+        "long_closures_per_min": 1.644277270284793,
+        "microsleep_per_h": 11.606663084363245,
+        "drowsy_alerts_per_h": 17.409994626544865
+      },
+      "mediapipe_blink": {
+        "perclos": 0.027512090274046212,
+        "blinks_per_min": 11.606663084363245,
+        "mean_blink_s": 0.14333333333333334,
+        "long_closures_per_min": 0.0967221923696937,
+        "microsleep_per_h": 0.0,
+        "drowsy_alerts_per_h": 0.0
+      },
+      "trained_gbm": {
+        "perclos": 0.009296077377753896,
+        "blinks_per_min": 5.609887157442235,
+        "mean_blink_s": 0.09942528735632182,
+        "long_closures_per_min": 0.0,
+        "microsleep_per_h": 0.0,
+        "drowsy_alerts_per_h": 0.0
+      }
+    },
+    {
+      "pid": "35",
+      "label": 5,
+      "minutes": 10.2,
+      "source_fps": 29.9,
+      "face_found": 1.0,
+      "yawns_per_h": 0.0,
+      "original_rule": {
+        "perclos": 0.08837133373238287,
+        "blinks_per_min": 23.409696903738368,
+        "mean_blink_s": 0.2284518828451883,
+        "long_closures_per_min": 1.2733307939271914,
+        "microsleep_per_h": 11.753822713174076,
+        "drowsy_alerts_per_h": 11.753822713174076
+      },
+      "mediapipe_blink": {
+        "perclos": 0.053273113130543615,
+        "blinks_per_min": 20.863035315883984,
+        "mean_blink_s": 0.15461658841940534,
+        "long_closures_per_min": 0.4897426130489198,
+        "microsleep_per_h": 5.876911356587038,
+        "drowsy_alerts_per_h": 11.753822713174076
+      },
+      "trained_gbm": {
+        "perclos": 0.023181150350982206,
+        "blinks_per_min": 11.949719758393643,
+        "mean_blink_s": 0.11639344262295083,
+        "long_closures_per_min": 0.1958970452195679,
+        "microsleep_per_h": 5.876911356587038,
+        "drowsy_alerts_per_h": 5.876911356587038
+      }
+    },
+    {
+      "pid": "35",
+      "label": 10,
+      "minutes": 11.1,
+      "source_fps": 30.0,
+      "face_found": 1.0,
+      "yawns_per_h": 10.844462295411187,
+      "original_rule": {
+        "perclos": 0.49623456170298225,
+        "blinks_per_min": 25.574856913344714,
+        "mean_blink_s": 1.1667844522968196,
+        "long_closures_per_min": 5.24149010944874,
+        "microsleep_per_h": 195.20032131740138,
+        "drowsy_alerts_per_h": 16.26669344311678
+      },
+      "mediapipe_blink": {
+        "perclos": 0.34867958630384577,
+        "blinks_per_min": 33.70820363490311,
+        "mean_blink_s": 0.62171581769437,
+        "long_closures_per_min": 6.145195300733006,
+        "microsleep_per_h": 206.04478361281255,
+        "drowsy_alerts_per_h": 21.688924590822374
+      },
+      "trained_gbm": {
+        "perclos": 0.04026508685611005,
+        "blinks_per_min": 15.543729290089367,
+        "mean_blink_s": 0.15581395348837213,
+        "long_closures_per_min": 1.174816748669545,
+        "microsleep_per_h": 10.844462295411187,
+        "drowsy_alerts_per_h": 10.844462295411187
+      }
+    },
+    {
+      "pid": "36",
+      "label": 0,
+      "minutes": 10.4,
+      "source_fps": 30.0,
+      "face_found": 1.0,
+      "yawns_per_h": 0.0,
+      "original_rule": {
+        "perclos": 0.054246545999785796,
+        "blinks_per_min": 14.651386955124773,
+        "mean_blink_s": 0.22214912280701754,
+        "long_closures_per_min": 0.0,
+        "microsleep_per_h": 0.0,
+        "drowsy_alerts_per_h": 0.0
+      },
+      "mediapipe_blink": {
+        "perclos": 0.02747135054085895,
+        "blinks_per_min": 12.916354289386312,
+        "mean_blink_s": 0.12761194029850742,
+        "long_closures_per_min": 0.0,
+        "microsleep_per_h": 0.0,
+        "drowsy_alerts_per_h": 0.0
+      },
+      "trained_gbm": {
+        "perclos": 0.023669272785691337,
+        "blinks_per_min": 13.205526400342723,
+        "mean_blink_s": 0.10802919708029196,
+        "long_closures_per_min": 0.0,
+        "microsleep_per_h": 0.0,
+        "drowsy_alerts_per_h": 0.0
+      }
+    },
+    {
+      "pid": "36",
+      "label": 5,
+      "minutes": 10.5,
+      "source_fps": 29.8,
+      "face_found": 1.0,
+      "yawns_per_h": 0.0,
+      "original_rule": {
+        "perclos": 0.09844916106494468,
+        "blinks_per_min": 20.48377706028688,
+        "mean_blink_s": 0.28837209302325584,
+        "long_closures_per_min": 1.143280580109035,
+        "microsleep_per_h": 5.716402900545175,
+        "drowsy_alerts_per_h": 17.149208701635526
+      },
+      "mediapipe_blink": {
+        "perclos": 0.0565288731276134,
+        "blinks_per_min": 17.720848991690044,
+        "mean_blink_s": 0.1913978494623656,
+        "long_closures_per_min": 0.19054676335150586,
+        "microsleep_per_h": 0.0,
+        "drowsy_alerts_per_h": 5.716402900545175
+      },
+      "trained_gbm": {
+        "perclos": 0.017837294235960408,
+        "blinks_per_min": 10.861165511035834,
+        "mean_blink_s": 0.09912280701754385,
+        "long_closures_per_min": 0.09527338167575293,
+        "microsleep_per_h": 0.0,
+        "drowsy_alerts_per_h": 0.0
+      }
+    },
+    {
+      "pid": "36",
+      "label": 10,
+      "minutes": 10.5,
+      "source_fps": 29.8,
+      "face_found": 1.0,
+      "yawns_per_h": 0.0,
+      "original_rule": {
+        "perclos": 0.136180157212662,
+        "blinks_per_min": 19.50286806883365,
+        "mean_blink_s": 0.41911764705882354,
+        "long_closures_per_min": 2.9636711281070744,
+        "microsleep_per_h": 120.45889101338432,
+        "drowsy_alerts_per_h": 22.94455066921606
+      },
+      "mediapipe_blink": {
+        "perclos": 0.05013809220310177,
+        "blinks_per_min": 12.332695984703632,
+        "mean_blink_s": 0.24392764857881138,
+        "long_closures_per_min": 1.2428298279158698,
+        "microsleep_per_h": 17.208413001912046,
+        "drowsy_alerts_per_h": 22.94455066921606
+      },
+      "trained_gbm": {
+        "perclos": 0.015243254727002336,
+        "blinks_per_min": 5.736137667304015,
+        "mean_blink_s": 0.15944444444444444,
+        "long_closures_per_min": 0.3824091778202677,
+        "microsleep_per_h": 0.0,
+        "drowsy_alerts_per_h": 0.0
+      }
+    }
+  ],
+  "protocol": "Drowsiness evaluation on UTA-RLDD (one fold part: 6 participants x alert/low-vigilant/drowsy).\n\nThree questions, from most to least product-relevant:\n\nA. **Shipped logic, zero RLDD training.** Run the app's eye-closure detector (trained only\n   on Eyeblink8) + its alert rules on every video. Do microsleep/drowsy alerts and PERCLOS\n   go up when people report being drowsy? This is an out-of-domain test: different people,\n   cameras (phones/webcams, < 30 fps), lighting, and real drowsiness.\nB. **Separability.** ROC-AUC of per-video eye metrics for alert (0) vs drowsy (10), and the\n   *within-person* view: does each person's drowsy video score higher than their alert one?\nC. **Trained drowsiness classifier.** 1-minute windows -> blink/eye features -> classifier,\n   leave-one-participant-out. Video label = majority vote of its windows (the paper's\n   \"video accuracy\"). Compared against the RLDD paper's HM-LSTM (65.2% overall, 70% on\n   fold 3) and human judges (57.8% overall, 60% on fold 3). Not directly comparable:\n   the paper trained on 48 people and tested on 12; we train on 5 and test on 1, using\n   only half of fold 3.\n\n    .venv/bin/python -m eval.rldd_eval",
+  "cap_fps": null,
+  "shipped_logic": {
+    "original_rule": {
+      "by_class_mean": {
+        "alert": {
+          "perclos": 0.07158383637493963,
+          "blinks_per_min": 15.974758071549816,
+          "mean_blink_s": 0.26635587438219016,
+          "long_closures_per_min": 1.1779113963878585,
+          "microsleep_per_h": 4.717626674394063,
+          "drowsy_alerts_per_h": 4.6647295842060466
+        },
+        "low vigilant": {
+          "perclos": 0.12435707264587574,
+          "blinks_per_min": 19.380165834253187,
+          "mean_blink_s": 0.36546567286720855,
+          "long_closures_per_min": 2.172751832675428,
+          "microsleep_per_h": 44.43875327192845,
+          "drowsy_alerts_per_h": 17.212271576518642
+        },
+        "drowsy": {
+          "perclos": 0.2881982146788298,
+          "blinks_per_min": 17.334496816913788,
+          "mean_blink_s": 1.0153561614652336,
+          "long_closures_per_min": 3.8542189894682264,
+          "microsleep_per_h": 156.40767335674948,
+          "drowsy_alerts_per_h": 14.499301695156944
+        }
+      },
+      "auc_alert_vs_drowsy": {
+        "perclos": 0.8055555555555556,
+        "mean_blink_s": 0.7222222222222223,
+        "long_closures_per_min": 0.8055555555555556,
+        "microsleep_per_h": 0.7916666666666667,
+        "drowsy_alerts_per_h": 0.7777777777777779
+      },
+      "within_person": {
+        "perclos": "5/6 people higher when drowsy",
+        "mean_blink_s": "4/6 people higher when drowsy",
+        "long_closures_per_min": "5/6 people higher when drowsy",
+        "microsleep_per_h": "5/6 people higher when drowsy",
+        "drowsy_alerts_per_h": "3/6 people higher when drowsy"
+      }
+    },
+    "mediapipe_blink": {
+      "by_class_mean": {
+        "alert": {
+          "perclos": 0.027675588811235538,
+          "blinks_per_min": 13.793273366777479,
+          "mean_blink_s": 0.14745149470795743,
+          "long_closures_per_min": 0.07004088561310491,
+          "microsleep_per_h": 0.0,
+          "drowsy_alerts_per_h": 1.7630638131152356
+        },
+        "low vigilant": {
+          "perclos": 0.07142214849334674,
+          "blinks_per_min": 19.36890535560733,
+          "mean_blink_s": 0.21278168724558788,
+          "long_closures_per_min": 0.9351235826310309,
+          "microsleep_per_h": 25.744145504681327,
+          "drowsy_alerts_per_h": 4.567727787917073
+        },
+        "drowsy": {
+          "perclos": 0.22323048165212034,
+          "blinks_per_min": 18.73474085383985,
+          "mean_blink_s": 0.6326625108631386,
+          "long_closures_per_min": 3.3146796597070867,
+          "microsleep_per_h": 119.1032856916551,
+          "drowsy_alerts_per_h": 18.331929878044665
+        }
+      },
+      "auc_alert_vs_drowsy": {
+        "perclos": 0.8611111111111112,
+        "mean_blink_s": 0.9722222222222223,
+        "long_closures_per_min": 0.9444444444444445,
+        "microsleep_per_h": 0.8333333333333333,
+        "drowsy_alerts_per_h": 0.9027777777777779
+      },
+      "within_person": {
+        "perclos": "6/6 people higher when drowsy",
+        "mean_blink_s": "6/6 people higher when drowsy",
+        "long_closures_per_min": "6/6 people higher when drowsy",
+        "microsleep_per_h": "4/6 people higher when drowsy",
+        "drowsy_alerts_per_h": "5/6 people higher when drowsy"
+      }
+    },
+    "trained_gbm": {
+      "by_class_mean": {
+        "alert": {
+          "perclos": 0.01747527047834591,
+          "blinks_per_min": 11.38930518241976,
+          "mean_blink_s": 0.11230235676720128,
+          "long_closures_per_min": 0.02222633821077977,
+          "microsleep_per_h": 0.0,
+          "drowsy_alerts_per_h": 0.8815319065576178
+        },
+        "low vigilant": {
+          "perclos": 0.047063731825134986,
+          "blinks_per_min": 16.83518270181852,
+          "mean_blink_s": 0.14253429938256446,
+          "long_closures_per_min": 0.5909883983224574,
+          "microsleep_per_h": 15.824193936902567,
+          "drowsy_alerts_per_h": 2.9580507660813518
+        },
+        "drowsy": {
+          "perclos": 0.08988869925382582,
+          "blinks_per_min": 15.593305107898926,
+          "mean_blink_s": 0.2807314818366254,
+          "long_closures_per_min": 2.2933441654097977,
+          "microsleep_per_h": 65.79163357192637,
+          "drowsy_alerts_per_h": 16.418091785017563
+        }
+      },
+      "auc_alert_vs_drowsy": {
+        "perclos": 0.8055555555555556,
+        "mean_blink_s": 0.9166666666666667,
+        "long_closures_per_min": 0.9444444444444444,
+        "microsleep_per_h": 0.75,
+        "drowsy_alerts_per_h": 0.8055555555555556
+      },
+      "within_person": {
+        "perclos": "5/6 people higher when drowsy",
+        "mean_blink_s": "5/6 people higher when drowsy",
+        "long_closures_per_min": "5/6 people higher when drowsy",
+        "microsleep_per_h": "3/6 people higher when drowsy",
+        "drowsy_alerts_per_h": "4/6 people higher when drowsy"
+      }
+    }
+  },
+  "confound_source_fps_auc_alert_vs_drowsy": 0.625,
+  "window_classifier": {
+    "n_windows": 191,
+    "features": [
+      "perclos",
+      "blinks_per_min",
+      "mean_blink_s",
+      "std_blink_s",
+      "long_closures_per_min",
+      "mean_ear_norm",
+      "std_ear_norm",
+      "mean_blink_score",
+      "yawns",
+      "pitch_mean",
+      "pitch_std",
+      "face_frac"
+    ],
+    "results": {
+      "logreg_global": {
+        "window_accuracy_3class": 0.6230366492146597,
+        "video_accuracy_3class": "13/18 = 72.2% (95% CI 49%-88%)",
+        "window_auc_alert_vs_drowsy": 0.9525252525252526,
+        "video_predictions": [
+          [
+            "31",
+            0,
+            0
+          ],
+          [
+            "31",
+            5,
+            10
+          ],
+          [
+            "31",
+            10,
+            10
+          ],
+          [
+            "32",
+            0,
+            0
+          ],
+          [
+            "32",
+            5,
+            5
+          ],
+          [
+            "32",
+            10,
+            10
+          ],
+          [
+            "33",
+            0,
+            0
+          ],
+          [
+            "33",
+            5,
+            5
+          ],
+          [
+            "33",
+            10,
+            10
+          ],
+          [
+            "34",
+            0,
+            0
+          ],
+          [
+            "34",
+            5,
+            0
+          ],
+          [
+            "34",
+            10,
+            5
+          ],
+          [
+            "35",
+            0,
+            5
+          ],
+          [
+            "35",
+            5,
+            5
+          ],
+          [
+            "35",
+            10,
+            10
+          ],
+          [
+            "36",
+            0,
+            10
+          ],
+          [
+            "36",
+            5,
+            5
+          ],
+          [
+            "36",
+            10,
+            10
+          ]
+        ]
+      },
+      "gbm_global": {
+        "window_accuracy_3class": 0.5392670157068062,
+        "video_accuracy_3class": "12/18 = 66.7% (95% CI 44%-84%)",
+        "window_auc_alert_vs_drowsy": 0.9411616161616161,
+        "video_predictions": [
+          [
+            "31",
+            0,
+            5
+          ],
+          [
+            "31",
+            5,
+            10
+          ],
+          [
+            "31",
+            10,
+            10
+          ],
+          [
+            "32",
+            0,
+            0
+          ],
+          [
+            "32",
+            5,
+            5
+          ],
+          [
+            "32",
+            10,
+            10
+          ],
+          [
+            "33",
+            0,
+            0
+          ],
+          [
+            "33",
+            5,
+            5
+          ],
+          [
+            "33",
+            10,
+            10
+          ],
+          [
+            "34",
+            0,
+            0
+          ],
+          [
+            "34",
+            5,
+            0
+          ],
+          [
+            "34",
+            10,
+            10
+          ],
+          [
+            "35",
+            0,
+            5
+          ],
+          [
+            "35",
+            5,
+            0
+          ],
+          [
+            "35",
+            10,
+            10
+          ],
+          [
+            "36",
+            0,
+            5
+          ],
+          [
+            "36",
+            5,
+            5
+          ],
+          [
+            "36",
+            10,
+            10
+          ]
+        ]
+      },
+      "logreg_per_driver": {
+        "window_accuracy_3class": 0.5340314136125655,
+        "video_accuracy_3class": "11/18 = 61.1% (95% CI 39%-80%)",
+        "window_auc_alert_vs_drowsy": 0.8628787878787878,
+        "video_predictions": [
+          [
+            "31",
+            0,
+            0
+          ],
+          [
+            "31",
+            5,
+            5
+          ],
+          [
+            "31",
+            10,
+            10
+          ],
+          [
+            "32",
+            0,
+            5
+          ],
+          [
+            "32",
+            5,
+            5
+          ],
+          [
+            "32",
+            10,
+            10
+          ],
+          [
+            "33",
+            0,
+            0
+          ],
+          [
+            "33",
+            5,
+            0
+          ],
+          [
+            "33",
+            10,
+            10
+          ],
+          [
+            "34",
+            0,
+            5
+          ],
+          [
+            "34",
+            5,
+            0
+          ],
+          [
+            "34",
+            10,
+            5
+          ],
+          [
+            "35",
+            0,
+            0
+          ],
+          [
+            "35",
+            5,
+            0
+          ],
+          [
+            "35",
+            10,
+            10
+          ],
+          [
+            "36",
+            0,
+            5
+          ],
+          [
+            "36",
+            5,
+            5
+          ],
+          [
+            "36",
+            10,
+            10
+          ]
+        ]
+      },
+      "gbm_per_driver": {
+        "window_accuracy_3class": 0.47643979057591623,
+        "video_accuracy_3class": "11/18 = 61.1% (95% CI 39%-80%)",
+        "window_auc_alert_vs_drowsy": 0.8941919191919192,
+        "video_predictions": [
+          [
+            "31",
+            0,
+            5
+          ],
+          [
+            "31",
+            5,
+            5
+          ],
+          [
+            "31",
+            10,
+            10
+          ],
+          [
+            "32",
+            0,
+            5
+          ],
+          [
+            "32",
+            5,
+            5
+          ],
+          [
+            "32",
+            10,
+            10
+          ],
+          [
+            "33",
+            0,
+            5
+          ],
+          [
+            "33",
+            5,
+            0
+          ],
+          [
+            "33",
+            10,
+            10
+          ],
+          [
+            "34",
+            0,
+            0
+          ],
+          [
+            "34",
+            5,
+            0
+          ],
+          [
+            "34",
+            10,
+            10
+          ],
+          [
+            "35",
+            0,
+            5
+          ],
+          [
+            "35",
+            5,
+            5
+          ],
+          [
+            "35",
+            10,
+            10
+          ],
+          [
+            "36",
+            0,
+            5
+          ],
+          [
+            "36",
+            5,
+            5
+          ],
+          [
+            "36",
+            10,
+            10
+          ]
+        ]
+      }
+    }
+  },
+  "paper_baselines": {
+    "hm_lstm_video_accuracy": {
+      "all_folds": 0.652,
+      "fold3": 0.7
+    },
+    "human_judgment_video_accuracy": {
+      "all_folds": 0.578,
+      "fold3": 0.6
+    },
+    "chance": 0.3333333333333333
+  }
+}

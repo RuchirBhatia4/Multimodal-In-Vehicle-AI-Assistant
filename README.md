@@ -75,6 +75,48 @@ mkdir -p data && curl -L -o data/eyeblink8.zip https://www.blinkingmatters.com/f
 
 Without `models/eye_state_gbm.joblib`, the driver monitor falls back to MediaPipe's eyeBlink score.
 
+## Evaluation: real drowsiness (UTA-RLDD)
+
+Eyeblink8 only had awake people. To test actual drowsiness I used part of
+[UTA-RLDD](https://sites.google.com/view/utarldd/home) (Ghoddoosian et al., CVPRW 2019):
+6 participants (fold 3, part 2) who filmed themselves on their own phones/webcams for ~10 min
+each while alert, low-vigilant and drowsy (self-reported on the Karolinska Sleepiness Scale), 3.3 h in total.
+**No RLDD data was used to train the eye model**, so this is an out-of-domain test.
+
+**The shipped app, unchanged** (trained eye model + alert rules):
+
+| Self-reported state | PERCLOS | Microsleep alerts / h | Drowsy alerts / h |
+|---|---|---|---|
+| Alert | 1.7% | 0.0 | 0.9 |
+| Low vigilant | 4.7% | 15.8 | 3.0 |
+| Drowsy | 9.0% | 65.8 | 16.4 |
+
+Alerts rise with drowsiness and stay near zero for alert drivers. But per person, the app's
+microsleep alerts fire more when drowsy for only **3 of 6** people. Some drowsy people barely close their eyes.
+
+**Out-of-domain lesson:** MediaPipe's untrained eyeBlink score separated drowsy from alert better
+(long eye closures per minute: ROC-AUC 1.00, higher when drowsy for 6/6 people) than the model
+I trained on Eyeblink8 (AUC 0.94, 5/6). That model learned crisp blinks from four alert people;
+drowsy eyes droop and close slowly.
+
+**Trained drowsiness classifier** (1-minute windows of blink features, logistic regression,
+leave-one-participant-out): **13/18 videos correct (72%, 95% CI 49–88%)**, alert-vs-drowsy
+window ROC-AUC 0.95. On this fold the RLDD paper reports 70% for its HM-LSTM and 60% for human
+judges, so we're on par. With 18 test videos the interval is wide, and this is not a claim of beating the paper.
+
+**Controls:** frame rates differed between recordings (12–30 fps), so everything was re-run with
+every video degraded to 12 fps; conclusions unchanged (classifier still 13/18, AUC 0.95).
+Full tables: [eval/results/rldd_fold3_part2.md](eval/results/rldd_fold3_part2.md),
+[12 fps control](eval/results/rldd_fold3_part2_fps12.md).
+
+**Limits:** 6 people; labels are self-reported states for whole videos; people sat at home, not driving.
+
+```bash
+.venv/bin/gdown -O data/rldd/Fold3_part2.zip 1LZU5KfJkFMj2pIkGwb3RjHDazoUfxSYQ   # 7.5 GB
+.venv/bin/python -m eval.rldd_extract data/rldd/Fold3_part2.zip --workers 4      # ~10 min
+.venv/bin/python -m eval.rldd_eval && .venv/bin/python -m eval.rldd_eval --cap-fps 12
+```
+
 ## Quick start
 
 ```bash

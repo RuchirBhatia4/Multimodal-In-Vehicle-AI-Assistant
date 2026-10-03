@@ -79,7 +79,15 @@ We evaluated eye-closure detection on **Eyeblink8**: 8 videos, 4 people, 71,748 
 
 **Limits.** 4 people, 40 minutes, indoors, awake people at a desk. This validates **eye-closure detection**, not drowsiness detection, which needs drowsy subjects (UTA-RLDD, NTHU-DDD, DMD).
 
-**Exercise.** Run the same evaluation on UTA-RLDD (alert vs. drowsy videos) and report ROC-AUC of PERCLOS for separating them.
+### 4c. Real drowsiness: UTA-RLDD (out-of-domain)
+6 people filmed themselves alert, low-vigilant and drowsy (self-reported, KSS). Full tables: `eval/results/rldd_fold3_part2.md`.
+- **Out-of-domain generalization.** The eye model trained on Eyeblink8 (4 alert people, crisp blinks) separated drowsy from alert *worse* than MediaPipe's untrained blink score (long closures/min AUC 0.94 vs 1.00). Drowsy eyes droop and close slowly, a pattern absent from the training data. A model can win on its own benchmark and lose on the task you care about. Fix: train on data that contains the target behavior.
+- **Confounds.** Recordings came from different phones at 12–30 fps, and drowsy videos happened to have higher frame rates. We re-ran everything with every video degraded to 12 fps (a *control*); conclusions held. Always ask what *else* differs between your classes.
+- **Error bars for small n.** 13/18 videos correct is 72%, but the 95% Wilson interval is 49–88%. That overlaps the paper's 70% and humans' 60%, so the honest claim is "on par".
+- **Within-person vs. between-person.** Per video, PERCLOS separates states well (AUC 0.83). But the app's microsleep alerts rose with drowsiness for only 3/6 individuals: some drowsy people barely close their eyes. Population metrics hide per-user failures.
+- **Label noise.** Labels are self-reported states for whole 10-minute videos, so a "drowsy" video contains alert minutes. That caps achievable window-level accuracy.
+
+**Exercise.** Process more RLDD folds (disk permitting) and retrain the eye-state model on frames that include drowsy eye closures. Does the out-of-domain gap close?
 
 ## 5. Streaming voice activity detection (Silero VAD)
 A ~2 MB recurrent network scores each 32 ms chunk for speech probability, carrying state between chunks (so each chunk is O(1)). We add **hysteresis** (start above 0.5, end below 0.35), a **hangover** (600 ms of silence ends the utterance) and a **pre-roll** (300 ms before onset, so the first syllable isn't clipped).
