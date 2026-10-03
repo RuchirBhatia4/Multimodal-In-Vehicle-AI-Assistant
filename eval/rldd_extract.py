@@ -98,6 +98,7 @@ def process_video(zip_path: str, member: str, pid: str, label: int, part: str = 
         arr = np.array(rows, dtype=np.float32)
         OUT.mkdir(parents=True, exist_ok=True)
         np.savez_compressed(out, **{c: arr[:, k] for k, c in enumerate(cols)}, fps=np.float32(fps), pid=pid, label=label,
+                            fold=member.split("/")[0],
                             width=size[0] if size else 0, height=size[1] if size else 0)
         dur = arr[-1, 0] if len(arr) else 0
         return (f"{pid}/{label}{part}: {i} frames, {fps:.1f} fps, {dur / 60:.1f} min, face {arr[:, 1].mean():.1%}, "

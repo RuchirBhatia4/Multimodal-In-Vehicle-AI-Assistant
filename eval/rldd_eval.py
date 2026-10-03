@@ -44,14 +44,21 @@ WIN_S = 60
 
 
 # ------------------------------------------------------------------------------ data
-def load_videos(cap_fps: float | None = None) -> list[dict]:
+def fold_of(d: dict) -> str:
+    return str(d["fold"]) if "fold" in d else "Fold3_part2"  # extracted before the field existed
+
+
+def load_videos(cap_fps: float | None = None, folds: set[str] | None = None) -> list[dict]:
     """Group per-file features by (participant, label), concatenating split recordings.
     cap_fps emulates a slower camera by keeping only the first frame in each 1/cap_fps slot:
     the control for frame rate differing between recordings."""
     groups: dict[tuple[str, int], list] = defaultdict(list)
     for p in FEAT_DIR.glob("rldd_*.npz"):
         m = re.match(r"rldd_(\d+)_(\d+)(_\d+)?$", p.stem)
-        groups[(m.group(1), int(m.group(2)))].append((m.group(3) or "", dict(np.load(p, allow_pickle=True))))
+        d = dict(np.load(p, allow_pickle=True))
+        if folds and fold_of(d) not in folds:
+            continue
+        groups[(m.group(1), int(m.group(2)))].append((m.group(3) or "", d))
     vids = []
     for (pid, label), parts in sorted(groups.items()):
         parts.sort(key=lambda x: x[0])
@@ -67,7 +74,7 @@ def load_videos(cap_fps: float | None = None) -> list[dict]:
             slot = np.floor(raw["t"] * cap_fps)
             keep = np.concatenate([[True], slot[1:] != slot[:-1]])
             raw = {k: v[keep] for k, v in raw.items()}
-        vids.append({"pid": pid, "label": label, "fps": float(parts[0][1]["fps"]), **resample_30fps(raw)})
+        vids.append({"pid": pid, "label": label, "fold": fold_of(parts[0][1]), "fps": float(parts[0][1]["fps"]), **resample_30fps(raw)})
     return vids
 
 
@@ -149,7 +156,7 @@ def wilson(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
 
 def main(cap_fps: float | None = None) -> None:
     bundle = joblib.load(ROOT / "models" / "eye_state_gbm.joblib")
-    vids = load_videos(cap_fps)
+    vids = load_videos(cap_fps, folds={"Fold3_part2"})
     report: dict = {"videos": [], "protocol": __doc__.strip(), "cap_fps": cap_fps}
     per_video: dict[str, list] = defaultdict(list)
     windows: list[dict] = []
