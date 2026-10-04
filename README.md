@@ -193,11 +193,11 @@ packages), Chrome, and a webcam + microphone. `ffmpeg` (`brew install ffmpeg`) i
 git clone https://github.com/RuchirBhatia4/Multimodal-In-Vehicle-AI-Assistant.git
 cd Multimodal-In-Vehicle-AI-Assistant
 scripts/setup.sh      # one time: venv, dependencies, ~5 GB of model weights (~3 min with a fast connection)
-scripts/run.sh        # every time; runs offline, ready in ~15 s at http://127.0.0.1:8000
+scripts/run.sh        # every time; runs offline and opens the dashboard in Chrome when ready (~15-30 s)
 ```
 
 The pills at the top of the dashboard turn green as each model finishes loading.
-Then open **http://127.0.0.1:8000** in Chrome and allow camera and microphone access:
+The dashboard (**http://127.0.0.1:8000**) opens by itself; allow camera and microphone access, then:
 
 1. **Driver monitor:** your webcam is picked automatically. Look ahead for ~3 s while it calibrates to your eyes.
 2. **Road camera:** click **Load dashcam video** and choose a driving clip: your own dashcam/phone footage, or a free-license clip (e.g. search "driving" on Pexels). Or pick a second camera.
@@ -250,3 +250,23 @@ DriveMind is a research prototype, not a certified safety system. Its warnings a
 ## Roadmap
 
 See [docs/VISION.md](docs/VISION.md): dataset benchmarks (DMD, NTHU-DDD, DriveLM), lane detection, latency work (prefix caching, streaming TTS), a learned router, and porting perception to Jetson Orin / TensorRT.
+
+## License
+
+DriveMind's code is licensed under the [GNU AGPL-3.0](LICENSE) (chosen to match its Ultralytics
+YOLO dependency). Copyright (C) 2026 Ruchir Bhatia.
+
+Model weights are downloaded by `scripts/setup.sh`, not distributed with this repo, and keep their own licenses:
+
+| Component | License |
+|---|---|
+| Ultralytics YOLO11 (road detection) | AGPL-3.0 |
+| Qwen2.5-VL-3B-Instruct (on-device VLM, 4-bit MLX conversion) | Qwen Research License: **non-commercial research/evaluation use only**; commercial use requires a license from Alibaba Cloud |
+| Whisper large-v3-turbo (speech recognition) | MIT |
+| MediaPipe Face Landmarker (driver monitoring) | Apache-2.0 |
+| Silero VAD (voice activity detection) | MIT |
+| CLIP ViT-B/32 (visual memory) | MIT |
+| MLX, mlx-vlm, mlx-whisper | MIT |
+
+The evaluation datasets (Eyeblink8: GPL-3.0; UTA-RLDD: please cite Ghoddoosian et al., CVPRW 2019)
+are not redistributed here, and neither are model weights trained on them.
