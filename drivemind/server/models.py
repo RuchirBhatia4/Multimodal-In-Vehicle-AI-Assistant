@@ -20,7 +20,7 @@ class Models:
         self.claude_brain = None
         self.router = None
         self.status: dict[str, str] = {
-            "asr": "pending", "memory": "pending", "local_brain": "pending", "claude": "pending",
+            "road": "pending", "asr": "pending", "memory": "pending", "local_brain": "pending", "claude": "pending",
         }
         self.load_times: dict[str, float] = {}
         self.listeners: list = []
@@ -72,6 +72,19 @@ class Models:
                 raise RuntimeError("no Anthropic credentials (set ANTHROPIC_API_KEY in .env)") from e
             self.claude_brain = brain
 
+        def road():
+            # Warm-up: import torch/ultralytics and compile the GPU kernels once at startup, so
+            # the first session doesn't drive "blind" for its first ~1-2 s (measured: the first
+            # frame of the first session took ~640 ms, longer still on a fresh install).
+            import numpy as np
+
+            from drivemind.perception.road import RoadPerception
+            # GPU kernels are compiled per input shape: warm the two shapes the dashboard sends
+            # (16:9 dashcam video and 4:3 webcams, both scaled to 640 px wide).
+            rp = RoadPerception()
+            for h in (360, 480):
+                rp.process(np.zeros((h, 640, 3), np.uint8))
+
         def brain_model():
             from drivemind.config import settings
             return settings.claude_model
@@ -83,9 +96,11 @@ class Models:
         import mlx_whisper  # noqa: F401
         import sentence_transformers  # noqa: F401
         from transformers import AutoProcessor  # noqa: F401
+        import ultralytics  # noqa: F401
 
-        # Claude check and CLIP are independent of the MLX models: run them in parallel.
-        side =[threading.Thread(target=self._load, args=(k, f), daemon=True) for k, f in (("claude", claude), ("memory", memory))]
+        # Claude check, CLIP and the road warm-up are independent of the MLX models: run them in parallel.
+        side = [threading.Thread(target=self._load, args=(k, f), daemon=True)
+                for k, f in (("claude", claude), ("memory", memory), ("road", road))]
         for th in side:
             th.start()
         self._load("asr", asr)

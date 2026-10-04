@@ -1,0 +1,4 @@
+# Tests and dataset tooling (installed by scripts/setup.sh)
+pytest==9.1.1
+gdown==6.4.1   # official RLDD zips on Google Drive
+kaggle==2.2.4  # per-video RLDD mirror on Kaggle (needs your own Kaggle token)

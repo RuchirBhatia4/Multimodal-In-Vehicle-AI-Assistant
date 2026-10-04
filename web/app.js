@@ -289,7 +289,7 @@ function logTool(line) {
   $("tool-log").prepend(el);
 }
 
-const STATUS_NAMES = { asr: "Whisper", memory: "CLIP memory", local_brain: "Qwen2.5-VL 4-bit", claude: "Claude", router: "router" };
+const STATUS_NAMES = { road: "YOLO road", asr: "Whisper", memory: "CLIP memory", local_brain: "Qwen2.5-VL 4-bit", claude: "Claude", router: "router" };
 function renderStatus(st) {
   $("model-status").innerHTML = Object.entries(st).map(([k, v]) => {
     const cls = v.startsWith("error") ? "error" : v;

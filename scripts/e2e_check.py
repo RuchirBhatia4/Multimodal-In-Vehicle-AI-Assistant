@@ -48,6 +48,7 @@ async def main() -> None:
     jpg = lambda im: cv2.imencode(".jpg", im, [cv2.IMWRITE_JPEG_QUALITY, 75])[1].tobytes()  # noqa: E731
     seen: dict[str, int] = {}
     truth_log: list[tuple[float, float]] = []
+    first_road: list[float] = []
     replies: list[dict] = []
 
     async with websockets.connect(URL, max_size=None) as ws:
@@ -55,6 +56,8 @@ async def main() -> None:
             async for raw in ws:
                 m = json.loads(raw)
                 seen[m["type"]] = seen.get(m["type"], 0) + 1
+                if m["type"] == "road" and not first_road:
+                    first_road.append(time.monotonic())
                 if m["type"] == "road" and m.get("min_ttc") is not None and truth_log:
                     # True TTC of the most recent frame sent (results lag by one frame at most).
                     true_ttc = truth_log[-1][1] - (time.monotonic() - truth_log[-1][0])
@@ -74,6 +77,14 @@ async def main() -> None:
                 break
             await asyncio.sleep(1)
         print("models:", h)
+
+        print("\n== 0. Warm-up: 1 s of static frames (measures how fast road perception starts)")
+        t_first = time.monotonic()
+        for _ in range(15):
+            await ws.send(bytes([1]) + jpg(road))
+            await ws.send(bytes([2]) + jpg(face))
+            await asyncio.sleep(1 / 15)
+        print(f"  first road result {first_road[0] - t_first:.2f}s after the first frame" if first_road else "  no road result within 1 s")
 
         print("\n== 1. Approaching vehicle at constant speed, true TTC 2.5 s -> 0.7 s (expect an FCW alert)")
         # Physically correct looming: image scale s(t) = s0 * T0 / (T0 - t), so true TTC = T0 - t.

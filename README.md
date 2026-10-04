@@ -184,15 +184,23 @@ Results: [second test](eval/results/rldd_heldout_test_Fold2_part1.md), [pooled](
 
 ## Quick start
 
+**Requirements:** a Mac with Apple Silicon (M1 or newer; the speech and vision-language models
+run on Apple's MLX framework), Python 3.11 (tested), about 9 GB of free disk (5 GB of models plus
+packages), Chrome, and a webcam + microphone. `ffmpeg` (`brew install ffmpeg`) is only needed for
+`scripts/e2e_check.py`.
+
 ```bash
-scripts/setup.sh      # venv, dependencies, ~5 GB of model weights (one time)
-scripts/run.sh        # http://127.0.0.1:8000
+git clone https://github.com/RuchirBhatia4/Multimodal-In-Vehicle-AI-Assistant.git
+cd Multimodal-In-Vehicle-AI-Assistant
+scripts/setup.sh      # one time: venv, dependencies, ~5 GB of model weights (~3 min with a fast connection)
+scripts/run.sh        # every time; runs offline, ready in ~15 s at http://127.0.0.1:8000
 ```
 
-Then open **http://127.0.0.1:8000** in Chrome:
+The pills at the top of the dashboard turn green as each model finishes loading.
+Then open **http://127.0.0.1:8000** in Chrome and allow camera and microphone access:
 
 1. **Driver monitor:** your webcam is picked automatically. Look ahead for ~3 s while it calibrates to your eyes.
-2. **Road camera:** click **Load dashcam video** and choose any driving clip (search "dashcam footage" on YouTube, or record your own), or pick a second camera.
+2. **Road camera:** click **Load dashcam video** and choose a driving clip: your own dashcam/phone footage, or a free-license clip (e.g. search "driving" on Pexels). Or pick a second camera.
 3. **Talk:** hold **Space** (or the mic button) and ask:
    - "How many cars are ahead of us?" / "Is the light green?"
    - "I'm freezing, warm it up and play some jazz" (makes two tool calls)
@@ -227,6 +235,8 @@ scripts/e2e_check.py      end-to-end test over the WebSocket with synthetic vide
 ```
 
 ## Tests
+
+`scripts/setup.sh` installs the test and dataset tools too (`requirements-dev.txt`).
 
 ```bash
 .venv/bin/python -m pytest -q          # unit tests

@@ -121,6 +121,18 @@ class Session:
         await self.send({"type": "car", "state": self.car.to_dict()})
         if models.memory:
             models.memory.clear()
+        # Build this session's perception models now (each on its own worker thread), not on
+        # the first frame: the first frames queue behind this instead of paying the load time.
+        self.ex["road"].submit(self._init_road)
+        self.ex["cabin"].submit(self._init_driver)
+
+    def _init_road(self) -> None:
+        if self.road is None and not self.closed:
+            self.road = RoadPerception()
+
+    def _init_driver(self) -> None:
+        if self.driver is None and not self.closed:
+            self.driver = DriverMonitor()
 
     def close(self) -> None:
         self.closed = True

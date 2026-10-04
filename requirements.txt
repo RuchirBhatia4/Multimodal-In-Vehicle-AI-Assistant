@@ -14,3 +14,5 @@ torch==2.14.1
 ultralytics==8.4.171
 uvicorn==0.54.0
 websockets==17.1
+scikit-learn==1.9.1  # loads the trained eye-state model (pickle is version-specific)
+joblib==1.6.0
