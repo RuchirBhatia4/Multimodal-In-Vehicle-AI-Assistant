@@ -292,11 +292,24 @@ function logTool(line) {
 
 const STATUS_NAMES = { road: "YOLO road", asr: "Whisper", memory: "CLIP memory", local_brain: "Qwen2.5-VL 4-bit", claude: "Claude", router: "router" };
 function renderStatus(st) {
+  // Claude is an optional cloud brain: without an API key it's "off", not an error, and every
+  // question is answered on-device. Real failures of the on-device models still show red.
+  const claudeOff = (st.claude || "").startsWith("error");
   $("model-status").innerHTML = Object.entries(st).map(([k, v]) => {
-    const cls = v.startsWith("error") ? "error" : v;
-    const title = v.startsWith("error") ? ` title="${esc(v)}"` : "";
-    return `<span class="pill ${cls}"${title}>${STATUS_NAMES[k] || k}: ${v.startsWith("error") ? (k === "claude" ? "no key" : "error") : v}</span>`;
+    const off = k === "claude" && claudeOff;
+    const cls = off ? "off" : v.startsWith("error") ? "error" : v;
+    const text = off ? "off (optional)" : v.startsWith("error") ? "error" : v;
+    const tip = off ? "Optional cloud brain. Add ANTHROPIC_API_KEY to .env and restart to enable it." : v;
+    const title = v.startsWith("error") ? ` title="${esc(tip)}"` : "";
+    return `<span class="pill ${cls}"${title}>${STATUS_NAMES[k] || k}: ${text}</span>`;
   }).join("");
+  const claudeOpt = $("brain-mode").querySelector('option[value="claude"]');
+  claudeOpt.disabled = claudeOff;
+  claudeOpt.textContent = claudeOff ? "Claude (cloud) – no key" : "Claude (cloud)";
+  if (claudeOff && $("brain-mode").value === "claude") {
+    $("brain-mode").value = "auto";
+    sendJSON({ type: "brain", mode: "auto" });
+  }
 }
 
 let lastCar = null;

@@ -31,6 +31,7 @@ kbd { background: var(--panel-2); border: 1px solid var(--line); border-radius: 
 .pill.ready { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 40%, transparent); }
 .pill.loading, .pill.pending { color: var(--warn); }
 .pill.error { color: var(--crit); border-color: color-mix(in srgb, var(--crit) 40%, transparent); }
+.pill.off { color: var(--muted); border-style: dashed; }
 .controls { display: flex; gap: 14px; align-items: center; }
 .controls label { display: flex; gap: 6px; align-items: center; color: var(--muted); font-size: 12px; }
 select, input[type=text], #text, button, .file-btn {
