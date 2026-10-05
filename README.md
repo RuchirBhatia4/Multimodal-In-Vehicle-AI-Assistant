@@ -2,11 +2,19 @@
 
 **An on-device co-pilot that sees the road, watches the driver, listens to the cabin, and reasons across all three in real time.**
 
+<p align="center">
+  <img src="docs/media/demo.webp" width="100%" alt="DriveMind running live: tracking cars at a Manhattan crosswalk; a collision warning and a microsleep alert at the same moment; a distraction alert">
+</p>
+
+<sub>Recorded live on a MacBook Pro; everything runs on-device. Road footage: <a href="https://bdd-data.berkeley.edu/">BDD100K</a> (Berkeley DeepDrive), © 2018 The Regents of the University of California, used for non-commercial, educational purposes under the <a href="https://github.com/bdd100k/bdd100k/blob/master/doc/source/license.rst">BDD100K license</a>.</sub>
+
 DriveMind fuses three systems that today's cars keep separate:
 
 - **ADAS-style road perception:** object detection, multi-object tracking, and monocular time-to-collision for forward-collision warnings.
 - **Driver monitoring:** eye aspect ratio, PERCLOS, yawns, and head pose, used to detect drowsiness, microsleeps, and distraction.
 - **A voice assistant with eyes:** streaming VAD → Whisper → a 4-bit vision-language model with tool calling, plus a CLIP-indexed visual memory so you can ask *"what did that sign say?"* after you've passed it.
+
+<p align="center"><img src="docs/media/voice_qa.png" width="85%" alt="Spoken question 'Is that light green?' answered on-device: Whisper 0.6 s, VLM 1.7 s, 2.3 s end to end"></p>
 
 A safety layer decides *when* the assistant may speak. It defers answers during hazards, shortens them under high workload, and starts a conversation when the driver gets drowsy.
 
