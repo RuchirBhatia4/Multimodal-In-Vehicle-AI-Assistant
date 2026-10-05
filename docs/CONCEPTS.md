@@ -127,6 +127,8 @@ We bias the vocabulary with `initial_prompt` (domain terms) and drop segments wi
 - **Quantization.** Group-wise affine 4-bit: each block of 64 weights stores a scale and bias, with w ≈ scale·q + bias, q ∈ {0..15}. This takes 3B params from ~6 GB to ~2 GB.
 - **Prefill vs. decode.** Prefill is compute-bound (we measure ~370–690 tok/s on the prompt). Decode is memory-bandwidth-bound (~110 tok/s). Quantization helps decode the most, because each generated token has to stream all the weights.
 - **Prompted tool calling + few-shot.** The 3B model initially made only one of two requested tool calls. Adding worked examples to the prompt fixed it (*in-context learning*).
+- **The catch: small models copy examples.** With a visual example in that same prompt, "Is the light green?" got "Yes, the light ahead is green." word for word, *at a red light*. Removing the examples made it call tools for plain questions instead ("Navigating to the red light"). The fix was to stop sharing one prompt: only car commands see the tool prompt and its examples, and everything else gets a plain "look and answer" prompt (section 8).
+- **Small details are the limit.** At 448 px wide a distant traffic light is a few pixels. On one intersection frame the model said "The light is red." while both signals facing us were green (a lit orange "don't walk" hand was bigger), and it missed a pickup truck partly hidden on the right. Fixes to try: send zoomed crops of the lights YOLO already found, or classify light state with a small dedicated model.
 
 **Code.** `brain/local_brain.py`
 
@@ -137,12 +139,24 @@ The LLM proposes actions as structured JSON; deterministic code validates, clamp
 
 This is the core idea behind using LLMs in safety-relevant products: **the LLM is advisory, the guardrails are code.** (ISO 26262 functional safety, ISO 21448 SOTIF.)
 
+**Routing is code too.** A few regular-expression rules (`brain/common.py`) decide which path a request takes, instead of letting the 3B model choose:
+
+| Request | Route | What the model may do |
+|---|---|---|
+| About the past ("what did that sign say?") | visual memory | answer from the best-matching past frame (section 9) |
+| Go/no-go ("can I go now?") | describe only | describe the scene; code drops any sentence claiming it's safe and adds "I can't judge that for you, so please check for yourself." |
+| Car command ("I'm cold, play some jazz") | tools | the JSON tool prompt, without the memory tool |
+| Anything else ("is the light green?") | look and answer | a plain prompt with the live image and no tools |
+
+Before this, the model told the driver "it's safe to go", spoke raw JSON aloud, and called tools for plain questions. On real BDD100K frames (`eval/brain_qa_eval.py`), the routed version answered 6/6 light-colour questions correctly on a clearly red and a clearly green frame, never claimed it was safe (4/4), and made the right tool calls for 3/3 commands. The light check catches answer copying; it does not measure how well the model reads lights (see the small-details limit in section 7).
+
 ## 9. Semantic visual memory (CLIP + retrieval)
 **CLIP** is trained contrastively (InfoNCE loss) so that matching image–caption pairs have high cosine similarity and mismatched pairs low. Result: text and images share one embedding space.
 
 - **Keyframe selection.** We store a frame when 1 − cos(e_t, e_last) > 0.10 (the *meaning* changed) or 5 s have passed. Pixel differencing would fire on every lighting change.
 - **Retrieval.** score = cos(text_query, frame) + 0.05·recency. The top frame goes back to the VLM as context. That's RAG, with frames instead of documents.
 - **Bounded memory.** A 3-minute ring buffer.
+- **When to search is a rule, not the model's choice.** In a recorded demo the 3B model answered "Which car is on my left?" from a frame 17 s old. Its choice also varied: in the eval run before the fix it left memory alone for present-tense questions but skipped it for 2 of 6 questions about the past, and one of those misses spoke raw JSON aloud. Now a question searches memory only when its wording points to the past (*did, was, passed, ago, the last sign*…) and to something visible (*sign, car, exit, colour*…). The Claude brain can still ask for `recall_scene`, but the server refuses it for present-tense questions. Result: 0/8 present-tense questions searched memory and 6/6 past-tense ones did (4/6 before).
 
 **Interview Q.** *CLIP retrieval returns the wrong frame for "the exit sign". How would you improve it?* (Region-level embeddings for crops of detected signs, OCR text indexed alongside, a larger CLIP model, or re-ranking the top-k with the VLM.)
 

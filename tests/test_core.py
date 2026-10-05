@@ -212,3 +212,121 @@ def test_ttc_ignores_identity_swaps_and_box_jumps():
         rp._ttc(1, i / 15, 40.0)
     out = [rp._ttc(1, (10 + i) / 15, 160.0) for i in range(4)]  # then 4x bigger, instantly
     assert all(o is None for o in out)
+
+
+# ----------------------------------------------------------------- visual-memory routing
+class _FakeMemory:
+    def __init__(self):
+        self.searches = []
+
+    def search(self, query, k=1):
+        self.searches.append(query)
+        import cv2
+
+        jpeg = cv2.imencode(".jpg", np.zeros((90, 160, 3), np.uint8))[1].tobytes()
+        return [{"jpeg": jpeg, "seconds_ago": 20.0, "similarity": 0.27, "summary": "sign"}][:k]
+
+
+def _ctx(query):
+    import cv2
+
+    from drivemind.brain.common import BrainContext
+    from drivemind.brain.tools import CarState
+
+    jpeg = cv2.imencode(".jpg", np.zeros((90, 160, 3), np.uint8))[1].tobytes()
+    return BrainContext(query, jpeg, "Detected: 2 cars.", "Driver state: alert.", CarState(), "low")
+
+
+def _local_brain(outputs):
+    """A LocalBrain whose VLM returns canned outputs in order (no weights loaded)."""
+    from drivemind.brain.local_brain import LocalBrain
+
+    brain = LocalBrain.__new__(LocalBrain)
+    brain.prompts = []
+
+    def fake_generate(system, user, image, max_tokens):
+        brain.prompts.append(user)
+        return outputs.pop(0), {}
+
+    brain._generate = fake_generate
+    return brain
+
+
+@pytest.mark.parametrize(
+    "query,expected",
+    [
+        ("Which car is on my left?", False),  # the question from the demo recording
+        ("Is that light green?", False),
+        ("How many cars are ahead of us?", False),
+        ("What did you just say?", False),  # past, but not about anything visible
+        ("Did I set the temperature?", False),
+        ("Which car was on my left a moment ago?", True),
+        ("What did that sign say?", True),
+        ("Remind me what the last sign said.", True),
+        ("What did we just drive past?", True),
+    ],
+)
+def test_memory_intent(query, expected):
+    from drivemind.brain.common import memory_intent
+
+    assert memory_intent(query) is expected
+
+
+def test_present_question_answers_from_live_view_without_tools():
+    mem = _FakeMemory()
+    brain = _local_brain(["The car on your left is red."])
+    res = brain.answer(_ctx("Which car is on my left?"), memory=mem)
+    assert mem.searches == [] and res.retrieved == [] and res.text == "The car on your left is red."
+    assert "Available tools" not in brain.prompts[0]  # no tool list or examples to copy
+    assert res.detail["route"] == "look_and_answer"
+
+
+def test_command_ignores_memory_tool_even_if_model_asks():
+    mem = _FakeMemory()
+    brain = _local_brain(['{"tool_calls": [{"name": "recall_scene", "args": {"query": "x"}}, '
+                          '{"name": "set_defrost", "args": {"on": true}}], "say": "Defroster on."}'])
+    res = brain.answer(_ctx("The windshield is fogging up, turn on the defroster"), memory=mem)
+    assert mem.searches == [] and [c["name"] for c in res.tool_calls] == ["set_defrost"]
+
+
+def test_past_question_always_uses_memory():
+    mem = _FakeMemory()
+    brain = _local_brain(["The car on your left was a white van."])
+    res = brain.answer(_ctx("Which car was on my left a moment ago?"), memory=mem)
+    assert len(mem.searches) == 1 and res.retrieved and "20 seconds ago" in brain.prompts[0]
+
+
+def test_broken_json_is_never_spoken():
+    brain = _local_brain(['{"tool_calls": [{"name": "say", "args": ["Turn the heat u', "Turning the heat up."])
+    res = brain.answer(_ctx("Turn the heat up a bit"), memory=_FakeMemory())
+    assert res.text == "Turning the heat up."
+
+
+def test_safety_question_never_says_safe():
+    brain = _local_brain(["The light is green, it's safe to go."])
+    res = brain.answer(_ctx("Is it safe to go?"), memory=_FakeMemory())
+    assert "safe to go" not in res.text and "check for yourself" in res.text
+
+
+def test_claude_memory_tool_refused_for_present_question():
+    from types import SimpleNamespace as NS
+
+    from drivemind.brain.claude_brain import ClaudeBrain
+
+    sent = []
+
+    class FakeMessages:
+        def create(self, **kw):
+            sent.append(kw["messages"])
+            usage = NS(input_tokens=1, output_tokens=1)
+            if len(sent) == 1:
+                tu = NS(type="tool_use", id="t1", name="recall_scene", input={"query": "car on left"})
+                return NS(stop_reason="tool_use", content=[tu], usage=usage)
+            return NS(stop_reason="end_turn", content=[NS(type="text", text="A red sedan.")], usage=usage)
+
+    brain = ClaudeBrain.__new__(ClaudeBrain)
+    brain.client = NS(beta=NS(messages=FakeMessages()))
+    mem = _FakeMemory()
+    res = brain.answer(_ctx("Which car is on my left?"), memory=mem)
+    tool_result = sent[1][-1]["content"][0]
+    assert mem.searches == [] and "Not searched" in tool_result["content"] and res.text == "A red sedan."

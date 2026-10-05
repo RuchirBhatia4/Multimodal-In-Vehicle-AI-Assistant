@@ -15,6 +15,12 @@ Concepts:
 * **Prompted tool calling + constrained output.** Small local models don't have a native
   tool API, so we describe tools in the prompt and ask for JSON, then parse defensively.
   (Production systems use grammar-constrained decoding to *guarantee* valid JSON.)
+* **Route deterministically where you can.** Simple rules (common.py) pick one of four paths:
+  visual memory for questions about the past, a describe-only prompt for go/no-go safety
+  questions, the tool prompt for car commands, and a plain look-and-answer prompt for
+  everything else. Leaving these choices to the 3B model failed in measurable ways
+  (eval/brain_qa_eval.py): it used memory for "which car is on my left?", copied example
+  answers ("the light is green" at a red light), and said "it's safe to go".
 """
 
 from __future__ import annotations
@@ -24,7 +30,15 @@ import re
 import threading
 import time
 
-from drivemind.brain.common import SYSTEM_PROMPT, BrainContext, BrainResult, downscale_jpeg
+from drivemind.brain.common import (
+    SYSTEM_PROMPT,
+    BrainContext,
+    BrainResult,
+    command_intent,
+    downscale_jpeg,
+    memory_intent,
+    safety_intent,
+)
 from drivemind.brain.tools import TOOL_NAMES, execute_vehicle_tool, tools_prompt_block
 from drivemind.config import settings
 
@@ -33,16 +47,21 @@ JSON_INSTRUCTIONS = """Available tools:
 
 Respond with ONLY one JSON object, no other text:
 {{"tool_calls": [{{"name": "<tool>", "args": {{...}}}}], "say": "<what to say aloud>"}}
-Use an empty tool_calls list when no tool is needed. If you call recall_scene, leave "say" empty.
 A request can need several tools: include one entry per action.
 
 Examples:
 Driver says: "I'm freezing, warm it up and put on some Taylor Swift"
 {{"tool_calls": [{{"name": "set_temperature", "args": {{"temperature_f": 74}}}}, {{"name": "play_media", "args": {{"query": "Taylor Swift"}}}}], "say": "Warming it up to 74 and playing Taylor Swift."}}
-Driver says: "What did that sign say?"
-{{"tool_calls": [{{"name": "recall_scene", "args": {{"query": "road sign with text"}}}}], "say": ""}}
-Driver says: "Is the light green?"
-{{"tool_calls": [], "say": "Yes, the light ahead is green."}}"""
+Driver says: "The windshield is fogging up, and take me home"
+{{"tool_calls": [{{"name": "set_defrost", "args": {{"on": true}}}}, {{"name": "navigate", "args": {{"destination": "home"}}}}], "say": "Defroster on, and heading home."}}"""
+# Only car commands reach this prompt (see answer()), so it has no visual-question examples:
+# the 3B model copied them word for word.
+
+_SAFETY_CLAIM = re.compile(r"\bsafe\b|\byou can (?:go|turn|merge|proceed|pass)\b|\bgo ahead\b|\bit'?s clear\b", re.I)
+
+
+def _looks_like_json(text: str) -> bool:
+    return "{" in text or "tool_calls" in text or '"say"' in text
 
 
 def _extract_json(text: str) -> dict | None:
@@ -85,43 +104,71 @@ class LocalBrain:
         }
         return out.text, stats
 
+    def _plain_answer(self, query: str, image, note: str = "", context: str = "") -> tuple[str, dict]:
+        prompt = (f"{note}{context}Driver says: \"{query}\"\nAnswer in one short spoken sentence, from what you "
+                  "actually see in the image, even if the question suggests something else.")
+        return self._generate(SYSTEM_PROMPT, prompt, image, max_tokens=80)
+
+    @staticmethod
+    def _plain_context(ctx: BrainContext) -> str:
+        # Detection counts help with "how many" questions; the heuristic traffic-light colour is
+        # left out so it can't override what the model sees. Recent turns allow follow-ups.
+        roads = ctx.road_summary.split(" Including ")[0]
+        hist = " ".join(f"Driver: {u} You: {a}" for u, a in ctx.history[-3:])
+        return f"Perception: {roads}\n" + (f"Recent conversation: {hist}\n" if hist else "")
+
+    def _result(self, say: str, calls, retrieved, t0: float, detail: dict) -> BrainResult:
+        return BrainResult(text=say.strip(), brain=self.name, tool_calls=calls, retrieved=retrieved,
+                           ms=round((time.perf_counter() - t0) * 1000, 1), detail=detail)
+
     def answer(self, ctx: BrainContext, memory=None) -> BrainResult:
         t0 = time.perf_counter()
-        image = downscale_jpeg(ctx.road_jpeg, settings.vlm_image_width) if ctx.road_jpeg else None
-        system = SYSTEM_PROMPT + "\n\n" + JSON_INSTRUCTIONS.format(tools=tools_prompt_block())
-        user = f"{ctx.context_block()}\n\nDriver says: \"{ctx.query}\""
-        raw, stats = self._generate(system, user, image, max_tokens=160)
-        parsed = _extract_json(raw)
-
         calls: list[dict] = []
         retrieved: list[dict] = []
-        if parsed is None:  # model ignored the format: treat output as plain speech
-            say = raw.strip().strip('"')
-            parsed = {"tool_calls": [], "say": say}
+        q = ctx.query
+
+        # 1. About something already passed: answer from visual memory (RAG over video).
+        if memory is not None and memory_intent(q):
+            hits = memory.search(q, k=1)
+            calls.append({"name": "recall_scene", "args": {"query": q}, "result": f"{len(hits)} frame(s)"})
+            if not hits:
+                return self._result("I don't have anything in my recent visual memory that matches.", calls, [], t0, {"route": "memory"})
+            hit = hits[0]
+            retrieved.append({k: hit[k] for k in ("seconds_ago", "similarity")})
+            past = downscale_jpeg(hit["jpeg"], settings.vlm_image_width * 2)  # more pixels to read text
+            say, gen = self._plain_answer(q, past, note=f"This image is the road camera view from {hit['seconds_ago']:.0f} seconds ago. ")
+            return self._result(say, calls, retrieved, t0, {"route": "memory", **gen})
+
+        image = downscale_jpeg(ctx.road_jpeg, settings.vlm_image_width) if ctx.road_jpeg else None
+
+        # 2. Go/no-go questions: describe what's there; the decision stays with the driver.
+        if safety_intent(q) and not command_intent(q):
+            obs, gen = self._generate(SYSTEM_PROMPT, (
+                "In one short sentence, describe what you see ahead that matters for this question. "
+                f"Do not say whether it is safe or what the driver should do: \"{q}\""), image, max_tokens=60)
+            kept = [s for s in re.split(r"(?<=[.!?])\s+", obs.strip()) if s and not _SAFETY_CLAIM.search(s)]
+            say = " ".join(kept + ["I can't judge that for you, so please check for yourself."])
+            return self._result(say, calls, retrieved, t0, {"route": "safety_describe", **gen})
+
+        # 3. Plain questions about the road: look and answer, no tool list, no examples to copy.
+        if not command_intent(q):
+            say, gen = self._plain_answer(q, image, context=self._plain_context(ctx))
+            if not say.strip() or _looks_like_json(say):
+                say = "Sorry, I'm not sure."
+            return self._result(say, calls, retrieved, t0, {"route": "look_and_answer", **gen})
+
+        # 4. Car commands: the tool prompt (the memory tool isn't offered).
+        system = SYSTEM_PROMPT + "\n\n" + JSON_INSTRUCTIONS.format(tools=tools_prompt_block(frozenset({"recall_scene"})))
+        user = f"{ctx.context_block()}\n\nDriver says: \"{q}\""
+        raw, stats = self._generate(system, user, image, max_tokens=200)
+        parsed = _extract_json(raw)
+        if parsed is None:  # model ignored the format; fine if it's plain speech (checked below)
+            parsed = {"tool_calls": [], "say": raw.strip().strip('"')}
         say = str(parsed.get("say") or "").strip()
 
         for call in parsed.get("tool_calls") or []:
             name, args = call.get("name"), call.get("args") or {}
-            if name not in TOOL_NAMES:
-                continue
-            if name == "recall_scene":
-                if memory is None:
-                    continue
-                hits = memory.search(str(args.get("query") or ctx.query), k=1)
-                calls.append({"name": name, "args": args, "result": f"{len(hits)} frame(s)"})
-                if hits:
-                    hit = hits[0]
-                    retrieved.append({k: hit[k] for k in ("seconds_ago", "similarity")})
-                    # Second pass: answer from the retrieved past frame (RAG over video).
-                    past = downscale_jpeg(hit["jpeg"], settings.vlm_image_width * 2)  # more pixels to read text
-                    q = (
-                        f"This image is the road camera view from {hit['seconds_ago']:.0f} seconds ago. "
-                        f"Answer the driver's question in one short spoken sentence: \"{ctx.query}\""
-                    )
-                    say, stats2 = self._generate(SYSTEM_PROMPT, q, past, max_tokens=80)
-                    stats["second_pass"] = stats2
-                else:
-                    say = "I don't have anything in my recent visual memory that matches."
+            if name not in TOOL_NAMES or name == "recall_scene":
                 continue
             result = execute_vehicle_tool(ctx.car, name, args)
             calls.append({"name": name, "args": args, "result": result})
@@ -133,9 +180,9 @@ class LocalBrain:
         notes = [c["result"] for c in calls if any(w in c["result"] for w in ("blocked", "outside", "Error"))]
         if notes:
             say = " ".join(notes)
-        if not say:
-            say = "Sorry, I didn't catch that."
-        return BrainResult(
-            text=say.strip(), brain=self.name, tool_calls=calls, retrieved=retrieved,
-            ms=round((time.perf_counter() - t0) * 1000, 1), detail={"raw": raw[:400], **stats},
-        )
+        if not say or _looks_like_json(say):
+            # Broken or empty output: never read JSON aloud (seen in the eval: the model invented
+            # a "say" tool, ran out of tokens, and the raw JSON became the answer).
+            say, gen = self._plain_answer(q, image)
+            stats["fallback"] = gen
+        return self._result(say, calls, retrieved, t0, {"route": "command", "raw": raw[:400], **stats})

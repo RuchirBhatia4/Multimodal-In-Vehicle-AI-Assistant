@@ -104,9 +104,11 @@ TOOLS: list[dict] = [
         "name": "recall_scene",
         "description": (
             "Search the road camera's visual memory of the last few minutes for a past moment "
-            "and return the best-matching frames. Use when the user asks about something already "
-            "passed, e.g. 'what did that sign say', 'what was the exit number', 'what color was that car'. "
-            "query should describe what the frame looks like, e.g. 'green highway exit sign'."
+            "and return the best-matching frames. Only for things that are no longer visible: questions "
+            "about the past such as 'what did that sign say', 'what was the exit number', 'what color was "
+            "that car'. Never for questions about what is visible now ('which car is on my left?'): answer "
+            "those from the current image. query should describe what the frame looks like, e.g. "
+            "'green highway exit sign'."
         ),
         "input_schema": _schema({"query": {"type": "string"}}),
     },
@@ -173,10 +175,12 @@ def execute_vehicle_tool(state: CarState, name: str, args: dict) -> str:
     return f"Error: unknown tool {name}"
 
 
-def tools_prompt_block() -> str:
+def tools_prompt_block(exclude: frozenset[str] = frozenset()) -> str:
     """Compact tool list for the local model, which has no native tool-calling API."""
     lines = []
     for t in TOOLS:
+        if t["name"] in exclude:
+            continue
         props = t["input_schema"]["properties"]
         sig = ", ".join(
             f"{k}: {'|'.join(v['enum']) if 'enum' in v else v['type']}" for k, v in props.items()

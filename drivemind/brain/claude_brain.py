@@ -18,7 +18,7 @@ import time
 
 import anthropic
 
-from drivemind.brain.common import SYSTEM_PROMPT, BrainContext, BrainResult, downscale_jpeg, to_jpeg
+from drivemind.brain.common import SYSTEM_PROMPT, BrainContext, BrainResult, downscale_jpeg, memory_intent, to_jpeg
 from drivemind.brain.tools import TOOLS, execute_vehicle_tool
 from drivemind.config import settings
 
@@ -90,7 +90,12 @@ class ClaudeBrain:
             messages.append({"role": "assistant", "content": resp.content})
             results = []
             for tu in tool_uses:
-                if tu.name == "recall_scene":
+                if tu.name == "recall_scene" and not memory_intent(ctx.query):
+                    # Same rule as the on-device brain: memory only for questions about the past.
+                    results.append({"type": "tool_result", "tool_use_id": tu.id, "content":
+                                    "Not searched: visual memory is only for things already passed, and this "
+                                    "question is about what is visible now. Answer from the current camera image."})
+                elif tu.name == "recall_scene":
                     hits = memory.search(tu.input.get("query", ctx.query), k=2) if memory else []
                     block: list[dict] = []
                     for h in hits:

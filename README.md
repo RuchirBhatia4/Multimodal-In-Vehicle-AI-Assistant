@@ -214,6 +214,30 @@ the image centre is the car's heading. The real fix is estimating the car's path
 detection); see the roadmap. Results: [eval/results/fcw_bdd100k.md](eval/results/fcw_bdd100k.md);
 reproduce with `.venv/bin/python -m eval.fcw_footage_eval` (needs a Kaggle token; downloads ~0.5 GB).
 
+## Evaluation: voice answers (visual memory, go/no-go questions, commands)
+
+In a recorded demo, the on-device model answered *"Which car is on my left?"* from a visual-memory
+frame 17 seconds old. Leaving such choices to a 3B model failed in other ways too: it copied an
+example answer from its prompt (*"Yes, the light ahead is green."* at a red light), told the driver
+"it's safe to go", and sometimes spoke raw JSON aloud. Now simple rules pick the route: visual memory
+only for questions about the past, a describe-only prompt for go/no-go questions, the tool prompt only
+for car commands, and a plain "look and answer" prompt for everything else. A small check of 27
+questions on real BDD100K frames:
+
+| Check | Result |
+|---|---|
+| Questions about the present that searched memory | **0/8** |
+| Questions about the past that searched memory | **6/6** (4/6 before) |
+| Light colour on a clearly red and a clearly green frame | **6/6** |
+| "Is it safe to go?" / "Can I go now?" answered without claiming it's safe | **4/4** |
+| Car commands with the right tool calls | **3/3** |
+
+**Still a limitation:** the model misses small details. On one intersection frame it said *"The light
+is red."* while both signals facing the car were green (at 448 px wide they're a few pixels, and a lit
+"don't walk" hand is bigger), and it missed a pickup truck partly hidden on the right. Results:
+[eval/results/brain_qa_after.json](eval/results/brain_qa_after.json); reproduce with
+`.venv/bin/python -m eval.brain_qa_eval` (needs a Kaggle token).
+
 ## Quick start
 
 **Requirements:** a Mac with Apple Silicon (M1 or newer; the speech and vision-language models

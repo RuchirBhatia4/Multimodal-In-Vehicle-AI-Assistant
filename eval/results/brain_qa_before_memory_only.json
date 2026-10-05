@@ -1,0 +1,103 @@
+{
+  "summary": "[before] present-tense questions that searched memory: 0/8; past-tense questions that searched memory: 4/6",
+  "rows": [
+    {
+      "kind": "present",
+      "query": "Which car is on my left?",
+      "memory_used": false,
+      "answer": "The car on your left is red.",
+      "seconds_ago": null
+    },
+    {
+      "kind": "present",
+      "query": "Is the light green?",
+      "memory_used": false,
+      "answer": "Yes, the light ahead is green.",
+      "seconds_ago": null
+    },
+    {
+      "kind": "present",
+      "query": "How many cars are ahead of us?",
+      "memory_used": false,
+      "answer": "There are seven cars ahead of us.",
+      "seconds_ago": null
+    },
+    {
+      "kind": "present",
+      "query": "What color is the car in front of us?",
+      "memory_used": false,
+      "answer": "The car in front is black.",
+      "seconds_ago": null
+    },
+    {
+      "kind": "present",
+      "query": "Is there a pedestrian crossing?",
+      "memory_used": false,
+      "answer": "Yes, there is a pedestrian crossing ahead.",
+      "seconds_ago": null
+    },
+    {
+      "kind": "present",
+      "query": "Is there a truck on the right?",
+      "memory_used": false,
+      "answer": "Yes, there is a truck on the right.",
+      "seconds_ago": null
+    },
+    {
+      "kind": "present",
+      "query": "How many people can you see?",
+      "memory_used": false,
+      "answer": "There are 7 people visible.",
+      "seconds_ago": null
+    },
+    {
+      "kind": "present",
+      "query": "What kind of street is this?",
+      "memory_used": false,
+      "answer": "This is a typical urban street with apartment buildings and a crosswalk.",
+      "seconds_ago": null
+    },
+    {
+      "kind": "past",
+      "query": "What did that sign say?",
+      "memory_used": true,
+      "answer": "The sign says \"Keep Left.\"",
+      "seconds_ago": 59.7
+    },
+    {
+      "kind": "past",
+      "query": "What was written on the sign we just passed?",
+      "memory_used": false,
+      "answer": "{\"tool_calls\": [{\"name\": \"recall_scene\", \"args\": {\"query\": \"sign with text\"}}, {\"name\": \"say\", \"args\": [\"What was written on the sign we just passed?\"]}}",
+      "seconds_ago": null
+    },
+    {
+      "kind": "past",
+      "query": "Which car was on my left a moment ago?",
+      "memory_used": false,
+      "answer": "The car on your left was red.",
+      "seconds_ago": null
+    },
+    {
+      "kind": "past",
+      "query": "Remind me what the last sign said.",
+      "memory_used": true,
+      "answer": "The last sign said \"Keep Left.\"",
+      "seconds_ago": 71.3
+    },
+    {
+      "kind": "past",
+      "query": "What did we just drive past?",
+      "memory_used": true,
+      "answer": "We just passed a Taco Bell.",
+      "seconds_ago": 76.8
+    },
+    {
+      "kind": "past",
+      "query": "What color was the truck we passed earlier?",
+      "memory_used": true,
+      "answer": "The truck you passed earlier was white.",
+      "seconds_ago": 82.4
+    }
+  ]
+}
