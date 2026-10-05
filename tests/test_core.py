@@ -181,3 +181,34 @@ def test_drowsiness_rule_microsleep_during_closure():
             assert not out["microsleep"]  # 0.7 s in
     assert out["microsleep"]  # fires while the eyes are still closed
     assert not r.update(t + 2.0, None)["microsleep"]  # face lost ends the closure
+
+
+def test_in_path_uses_distance_invariant_lateral_offset():
+    """Pinhole camera, f = 500 px, 640x360 frame. A car parked at the curb (3 m to the side,
+    1.8 m wide) is never 'in path' however close it gets; a car in our lane is, once its box
+    is big enough to measure."""
+    from drivemind.perception.road import is_in_path
+
+    f, w, h = 500.0, 640, 360
+
+    def box(lateral_m, width_m, dist_m):
+        cx, bw = w / 2 + f * lateral_m / dist_m, f * width_m / dist_m
+        return cx - bw / 2, 200.0, cx + bw / 2, 300.0  # bottom in the lower part of the frame
+
+    for z in (40, 20, 10, 6):
+        assert not is_in_path(*box(3.0, 1.8, z), w, h), z  # parked at the curb
+    assert is_in_path(*box(0.4, 1.8, 15), w, h)  # ahead in our lane
+    assert not is_in_path(*box(0.4, 1.8, 60), w, h)  # same car far away: box too small to judge
+
+
+def test_ttc_ignores_identity_swaps_and_box_jumps():
+    """A sudden size jump (tracker swapped objects at a scene cut, or a car emerging from
+    behind another) must not produce a near-zero time-to-collision."""
+    from drivemind.perception.road import RoadPerception
+
+    rp = RoadPerception.__new__(RoadPerception)
+    rp.histories, rp.ttc_window_s = {}, 0.8
+    for i in range(10):  # small, steady box for 0.6 s
+        rp._ttc(1, i / 15, 40.0)
+    out = [rp._ttc(1, (10 + i) / 15, 160.0) for i in range(4)]  # then 4x bigger, instantly
+    assert all(o is None for o in out)

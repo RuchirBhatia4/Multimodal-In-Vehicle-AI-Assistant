@@ -13,6 +13,14 @@ ML concepts (see docs/CONCEPTS.md for the long version):
   constant speed, TTC = s / (ds/dt) = 1 / (d ln s / dt). We fit a line to ln(s) over a
   short window (least squares is robust to per-frame jitter). Biological vision uses the
   same cue (the "tau" variable).
+* **Which objects are in our path? (also monocular).** A fixed "corridor" box in the image
+  fails on real streets: perspective puts parked cars at the curb inside it, and they loom
+  as you drive past, so the first version fired "Brake!" for up to 31 of 40 s of ordinary
+  driving (BDD100K clips). Instead use an invariant: an object at lateral offset X metres
+  and width W appears at image offset f*X/Z with width f*W/Z, so offset/width = X/W does
+  not depend on distance. Cars in our lane stay below ~0.7 widths off our heading; parked
+  cars sit several widths out for their whole approach. Tiny boxes are ignored (a pixel of
+  jitter is a big fraction of their size), and the warning must hold for 3 frames in a row.
 """
 
 from __future__ import annotations
@@ -39,6 +47,19 @@ CLASSES = {
     11: "stop sign",
 }
 COLLIDABLE = {"person", "bicycle", "car", "motorcycle", "bus", "truck"}
+MAX_OFFSET_WIDTHS = 0.7  # |object centre - image centre| / object width, see is_in_path()
+MIN_WIDTH_FRAC = 0.04  # boxes narrower than 4% of the frame are too small for looming TTC
+PERSIST_FRAMES = 3  # consecutive below-threshold estimates before warning
+MAX_FRAME_JUMP = 0.25  # max |change in ln(size)| between consecutive frames before resetting a track
+
+
+def is_in_path(x1: float, y1: float, x2: float, y2: float, w: int, h: int) -> bool:
+    """Is this object roughly in our lane? Uses offset/width = X/W, which stays constant as we
+    approach a stationary object, unlike a fixed region of the image."""
+    bw = x2 - x1
+    if bw < MIN_WIDTH_FRAC * w or y2 / h < 0.45:  # too small to judge, or above the horizon band
+        return False
+    return abs((x1 + x2) / 2 - w / 2) / bw < MAX_OFFSET_WIDTHS
 
 
 def _pick_device() -> str:
@@ -82,6 +103,8 @@ class RoadPerception:
         self.device = _pick_device()
         self.model = YOLO(settings.yolo_model)
         self.histories: dict[int, _TrackHistory] = {}
+        self.below: dict[int, int] = {}  # consecutive below-warning-threshold TTCs per track
+        self.aspect: dict[int, float] = {}  # height/width while fully visible, per track
         self.ttc_window_s = 0.8
 
     def reset(self) -> None:
@@ -90,10 +113,19 @@ class RoadPerception:
 
         self.model = YOLO(settings.yolo_model)
         self.histories.clear()
+        self.below.clear()
+        self.aspect.clear()
 
     def _ttc(self, tid: int, t: float, scale: float) -> float | None:
         hist = self.histories.setdefault(tid, _TrackHistory(deque(maxlen=40), t))
-        hist.samples.append((t, math.log(max(scale, 1e-6))))
+        ln_s = math.log(max(scale, 1e-6))
+        # Outlier guard: a real approaching object can't change size by >28% between frames
+        # ~67-200 ms apart (that would be TTC < ~0.25 s). Jumps like that come from the
+        # tracker swapping identities (scene cut, occlusion) or a box suddenly
+        # expanding when a partly hidden car emerges, so start the history over.
+        if hist.samples and t - hist.samples[-1][0] < 0.2 and abs(ln_s - hist.samples[-1][1]) > MAX_FRAME_JUMP:
+            hist.samples.clear()
+        hist.samples.append((t, ln_s))
         hist.last_seen = t
         pts = [(ti, si) for ti, si in hist.samples if t - ti <= self.ttc_window_s]
         if len(pts) < 5 or pts[-1][0] - pts[0][0] < 0.3:
@@ -110,6 +142,23 @@ class RoadPerception:
         if ttc <= 0:
             return 0.05
         return ttc if ttc < 12.0 else None  # beyond ~12 s the estimate is noise, not a threat
+
+    def _scale(self, tid: int, x1: float, y1: float, x2: float, y2: float, w: int, h: int) -> float | None:
+        """Object size for looming: sqrt(width * height), the least noisy measure. A box cut
+        off by the frame edge stops growing in that direction (tall vehicles close ahead hit
+        the top edge), which made TTC drift *up* as they got closer. So remember each track's
+        height/width ratio while it is fully visible, and fill in the clipped side from it:
+        the ratio doesn't change as the object approaches, so the measure stays continuous."""
+        bw, bh = max(x2 - x1, 1.0), max(y2 - y1, 1.0)
+        clip_tb, clip_lr = y1 <= 1 or y2 >= h - 1, x1 <= 1 or x2 >= w - 1
+        if not clip_tb and not clip_lr:
+            prev = self.aspect.get(tid)
+            self.aspect[tid] = bh / bw if prev is None else 0.8 * prev + 0.2 * bh / bw
+            return math.sqrt(bw * bh)
+        ratio = self.aspect.get(tid)
+        if ratio is None or (clip_tb and clip_lr):
+            return None  # no fully-visible reference yet, or clipped on both axes
+        return bw * math.sqrt(ratio) if clip_tb else bh / math.sqrt(ratio)
 
     def process(self, frame_bgr: np.ndarray, t: float | None = None) -> dict:
         t = time.monotonic() if t is None else t
@@ -148,21 +197,23 @@ class RoadPerception:
                     crop = frame_bgr[int(y1) : int(y2), int(x1) : int(x2)]
                     track["state"] = classify_traffic_light(crop)
                 if tid is not None and label in COLLIDABLE:
-                    scale = math.sqrt(max((x2 - x1) * (y2 - y1), 1.0))
-                    ttc = self._ttc(int(tid), t, scale)
-                    cx = (x1 + x2) / 2 / w
-                    # "Ego corridor": only objects roughly ahead of us can be collision threats.
-                    in_path = bool(0.3 < cx < 0.7 and y2 / h > 0.45)
+                    scale = self._scale(int(tid), x1, y1, x2, y2, w, h)
+                    ttc = None if scale is None else self._ttc(int(tid), t, scale)
+                    in_path = is_in_path(x1, y1, x2, y2, w, h)
                     track["in_path"] = in_path
+                    threat = in_path and ttc is not None and ttc < settings.ttc_warn_s
+                    self.below[int(tid)] = self.below.get(int(tid), 0) + 1 if threat else 0
                     if ttc is not None:
                         track["ttc"] = round(ttc, 2)
-                        if in_path and (min_ttc is None or ttc < min_ttc):
+                        if self.below[int(tid)] >= PERSIST_FRAMES and (min_ttc is None or ttc < min_ttc):
                             min_ttc, lead_id = ttc, int(tid)
                 tracks.append(track)
 
         # Forget tracks we haven't seen for a while (bounded memory).
         for tid in [k for k, v in self.histories.items() if t - v.last_seen > 2.0]:
             del self.histories[tid]
+            self.below.pop(tid, None)
+            self.aspect.pop(tid, None)
 
         level = "none"
         if min_ttc is not None:

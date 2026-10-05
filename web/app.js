@@ -121,9 +121,10 @@ const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v
 function drawRoad(r) {
   const s = sources.road, ctx = s.overlay.getContext("2d"), R = videoRect(s), dpr = devicePixelRatio;
   ctx.clearRect(0, 0, s.overlay.width, s.overlay.height);
-  // Ego corridor (where a collision threat must be)
-  ctx.setLineDash([6 * dpr, 6 * dpr]); ctx.strokeStyle = "rgba(255,255,255,.25)"; ctx.lineWidth = 1.5 * dpr;
-  ctx.strokeRect(R.x + 0.3 * R.w, R.y + 0.45 * R.h, 0.4 * R.w, 0.55 * R.h);
+  // Assumed heading (image centre). An object is "in path" when its centre is within ~0.7 of
+  // its own width of this line, a test that doesn't change with distance (see road.py).
+  ctx.setLineDash([6 * dpr, 6 * dpr]); ctx.strokeStyle = "rgba(255,255,255,.3)"; ctx.lineWidth = 1.5 * dpr;
+  ctx.beginPath(); ctx.moveTo(R.x + 0.5 * R.w, R.y + 0.45 * R.h); ctx.lineTo(R.x + 0.5 * R.w, R.y + R.h); ctx.stroke();
   ctx.setLineDash([]);
   ctx.font = `${12 * dpr}px ui-monospace, Menlo, monospace`;
   for (const t of r.tracks) {

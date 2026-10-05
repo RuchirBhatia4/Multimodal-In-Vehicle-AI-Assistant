@@ -1,6 +1,6 @@
 """End-to-end smoke test against a running server (python -m drivemind.server.app).
 
-Streams synthetic road frames that *zoom in* on a vehicle (simulated approach, so TTC
+Streams a synthetic road scene with a vehicle approaching at constant speed (so TTC
 should fall and a forward-collision alert should fire), cabin frames, a spoken question
 (macOS `say` -> 16 kHz PCM), and a typed command. Prints what comes back.
 
@@ -25,11 +25,23 @@ ASSETS = os.path.join(os.path.dirname(ultralytics.__file__), "assets")
 URL = os.environ.get("DM_URL", "ws://127.0.0.1:8000/ws")
 
 
-def zoom(img: np.ndarray, f: float) -> np.ndarray:
-    h, w = img.shape[:2]
-    cw, ch = int(w / f), int(h / f)
-    x0, y0 = (w - cw) // 2, int((h - ch) * 0.65)
-    return cv2.resize(img[y0 : y0 + ch, x0 : x0 + cw], (w, h))
+BUS_BOX = (4, 229, 796, 728)  # the bus in ultralytics' bus.jpg (x1, y1, x2, y2)
+
+
+def approach_frame(sprite: np.ndarray, width_frac: float, w: int = 1280, h: int = 720) -> np.ndarray:
+    """A vehicle `width_frac` of the frame wide, centred ahead on a plain sky/asphalt scene.
+    Growing width_frac as T0 / (T0 - t) is exactly how a constant-speed approach looms. (An
+    earlier version zoomed into the whole photo, where the bus overflowed the frame by
+    TTC ~1.6 s, which no longer resembled a real approach.)"""
+    img = np.zeros((h, w, 3), np.uint8)
+    img[: h // 2], img[h // 2 :] = (200, 180, 150), (90, 90, 90)
+    sw = max(int(w * width_frac), 8)
+    sh = int(sw * sprite.shape[0] / sprite.shape[1])
+    s = cv2.resize(sprite, (sw, sh))
+    x0, yb = (w - sw) // 2, min(h, h // 2 + int(0.35 * sh))
+    y0 = max(0, yb - sh)
+    img[y0:yb, x0 : x0 + sw] = s[sh - (yb - y0) :, : w - x0]
+    return img
 
 
 def speech_pcm(text: str) -> bytes:
@@ -45,6 +57,9 @@ async def main() -> None:
     # Landscape "dashcam" frame with the bus centered in the ego corridor.
     road = cv2.copyMakeBorder(bus, 0, 0, 400, 400, cv2.BORDER_REPLICATE)
     face = cv2.imread(os.path.join(ASSETS, "zidane.jpg"))
+    x1, y1, x2, y2 = BUS_BOX
+    sprite = bus[y1:y2, x1:x2]
+    T0, W0 = 3.0, 0.12  # true TTC when the approach starts; vehicle width then (fraction of frame)
     jpg = lambda im: cv2.imencode(".jpg", im, [cv2.IMWRITE_JPEG_QUALITY, 75])[1].tobytes()  # noqa: E731
     seen: dict[str, int] = {}
     truth_log: list[tuple[float, float]] = []
@@ -81,18 +96,18 @@ async def main() -> None:
         print("\n== 0. Warm-up: 1 s of static frames (measures how fast road perception starts)")
         t_first = time.monotonic()
         for _ in range(15):
-            await ws.send(bytes([1]) + jpg(road))
+            await ws.send(bytes([1]) + jpg(approach_frame(sprite, W0)))  # same scene the approach starts from
             await ws.send(bytes([2]) + jpg(face))
             await asyncio.sleep(1 / 15)
         print(f"  first road result {first_road[0] - t_first:.2f}s after the first frame" if first_road else "  no road result within 1 s")
 
-        print("\n== 1. Approaching vehicle at constant speed, true TTC 2.5 s -> 0.7 s (expect an FCW alert)")
-        # Physically correct looming: image scale s(t) = s0 * T0 / (T0 - t), so true TTC = T0 - t.
-        T0, start = 2.5, time.monotonic()
+        print("\n== 1. Vehicle ahead approaching at constant speed, true TTC 3.0 s -> 0.6 s (expect warning, then 'Brake!')")
+        # Physically correct looming: image width w(t) = w0 * T0 / (T0 - t), so true TTC = T0 - t.
+        start = time.monotonic()
         truth_log.clear()
-        while (t := time.monotonic() - start) < 1.8:
+        while (t := time.monotonic() - start) < T0 - 0.6:
             truth_log.append((time.monotonic(), T0 - t))
-            await ws.send(bytes([1]) + jpg(zoom(road, T0 / (T0 - t))))
+            await ws.send(bytes([1]) + jpg(approach_frame(sprite, W0 * T0 / (T0 - t))))
             await ws.send(bytes([2]) + jpg(face))
             await asyncio.sleep(1 / 15)
 

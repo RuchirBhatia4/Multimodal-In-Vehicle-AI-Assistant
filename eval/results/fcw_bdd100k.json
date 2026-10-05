@@ -1,0 +1,175 @@
+{
+  "total_s": 982,
+  "warning_s": 64,
+  "critical_s": 86,
+  "clips": {
+    "00207869-046fa443": {
+      "seconds": 41,
+      "warning_s": 2,
+      "critical_s": 28,
+      "night": false,
+      "timeline": "...CCCCCCwCCCC.CCCCC.....CC..CCwCCCCCCCCC"
+    },
+    "00268999-a4b8e39d": {
+      "seconds": 41,
+      "warning_s": 2,
+      "critical_s": 1,
+      "night": true,
+      "timeline": "..........w.w.C.........................."
+    },
+    "002cd38e-ebe888e1": {
+      "seconds": 41,
+      "warning_s": 1,
+      "critical_s": 0,
+      "night": false,
+      "timeline": "..................w......................"
+    },
+    "00313a01-97de1f42": {
+      "seconds": 41,
+      "warning_s": 5,
+      "critical_s": 2,
+      "night": true,
+      "timeline": "............w...Cw..w...w..........w.C..."
+    },
+    "0032419c-7d20b300": {
+      "seconds": 41,
+      "warning_s": 1,
+      "critical_s": 0,
+      "night": true,
+      "timeline": ".................w......................."
+    },
+    "003baca5-aab2e274": {
+      "seconds": 41,
+      "warning_s": 2,
+      "critical_s": 3,
+      "night": false,
+      "timeline": "....wC..............CCw.................."
+    },
+    "003e23ee-07d32feb": {
+      "seconds": 41,
+      "warning_s": 7,
+      "critical_s": 1,
+      "night": false,
+      "timeline": ".....................ww.......w.Cw.www..."
+    },
+    "004071a4-a45d905f": {
+      "seconds": 41,
+      "warning_s": 8,
+      "critical_s": 0,
+      "night": false,
+      "timeline": ".w.....w.........wwww...ww..............."
+    },
+    "006c0799-964a2695": {
+      "seconds": 41,
+      "warning_s": 2,
+      "critical_s": 3,
+      "night": false,
+      "timeline": ".............wwCCC......................."
+    },
+    "008edf63-51af8ab6": {
+      "seconds": 41,
+      "warning_s": 0,
+      "critical_s": 0,
+      "night": true,
+      "timeline": "........................................."
+    },
+    "009bd04d-42445981": {
+      "seconds": 41,
+      "warning_s": 2,
+      "critical_s": 3,
+      "night": true,
+      "timeline": "...................wC........w.CC........"
+    },
+    "00de601c-858a8a8d": {
+      "seconds": 41,
+      "warning_s": 3,
+      "critical_s": 0,
+      "night": false,
+      "timeline": ".....................www................."
+    },
+    "01041028-187a2d1f": {
+      "seconds": 41,
+      "warning_s": 1,
+      "critical_s": 0,
+      "night": false,
+      "timeline": "......w.................................."
+    },
+    "01118704-2d838d7f": {
+      "seconds": 41,
+      "warning_s": 0,
+      "critical_s": 2,
+      "night": false,
+      "timeline": ".CC......................................"
+    },
+    "0128cdde-289cd9e9": {
+      "seconds": 41,
+      "warning_s": 1,
+      "critical_s": 6,
+      "night": true,
+      "timeline": ".....w..CCCCC.C.........................."
+    },
+    "012c118a-b3092f3b": {
+      "seconds": 41,
+      "warning_s": 5,
+      "critical_s": 2,
+      "night": true,
+      "timeline": "..www.....CC........w...............w...."
+    },
+    "015f23ad-5049df48": {
+      "seconds": 41,
+      "warning_s": 0,
+      "critical_s": 0,
+      "night": true,
+      "timeline": "........................................."
+    },
+    "01762203-e12f3f9f": {
+      "seconds": 41,
+      "warning_s": 2,
+      "critical_s": 10,
+      "night": false,
+      "timeline": ".C.CCw...w..CCCCCCC......................"
+    },
+    "01853f47-6975b587": {
+      "seconds": 41,
+      "warning_s": 2,
+      "critical_s": 12,
+      "night": true,
+      "timeline": "......C.wC...CCCCCC....wC........CCC....."
+    },
+    "019efe88-bbc2a4ac": {
+      "seconds": 41,
+      "warning_s": 3,
+      "critical_s": 3,
+      "night": false,
+      "timeline": "..............wC......Cw.......C...w....."
+    },
+    "01ce75e2-fc93bd7e": {
+      "seconds": 40,
+      "warning_s": 4,
+      "critical_s": 5,
+      "night": true,
+      "timeline": ".C........wC....wC.....ww....CC........."
+    },
+    "024b275b-33674b72": {
+      "seconds": 41,
+      "warning_s": 0,
+      "critical_s": 1,
+      "night": false,
+      "timeline": "....................C...................."
+    },
+    "028b5d16-af6a6275": {
+      "seconds": 41,
+      "warning_s": 3,
+      "critical_s": 1,
+      "night": false,
+      "timeline": "............................wwwC........."
+    },
+    "02a26ce5-42f8fd75": {
+      "seconds": 40,
+      "warning_s": 8,
+      "critical_s": 3,
+      "night": false,
+      "timeline": "........wwCw.wwCwwC.w..................."
+    }
+  }
+}

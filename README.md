@@ -38,7 +38,7 @@ Each stage runs on its own worker thread with **latest-frame-wins backpressure**
 | Speech recognition: Whisper turbo, 3 s utterance | ~0.5–0.6 s |
 | On-device VLM answer (Qwen2.5-VL-3B, 4-bit) | ~1.6–2.2 s, decode ~110 tok/s |
 | End of speech → spoken answer (fully local) | ~2.5 s |
-| TTC accuracy vs. analytic ground truth | within 0.15 s (unit test); 0.01–0.17 s in end-to-end runs |
+| TTC accuracy vs. ground truth | within 0.15 s (unit test); simulated approach converges to within 0.05 s |
 
 ## Evaluation: driver eye-closure detection (Eyeblink8)
 
@@ -182,6 +182,30 @@ Results: [second test](eval/results/rldd_heldout_test_Fold2_part1.md), [pooled](
 .venv/bin/python -m eval.drowsy_rule pooled
 ```
 
+## Evaluation: collision warnings on real driving (BDD100K)
+
+The first collision-warning version was only tested on synthetic approaches. Run on 24 random
+40-second clips of ordinary US city driving from [BDD100K](https://bdd-data.berkeley.edu/)
+(16 min, no crashes), its red **"Brake!" alarm was on 23% of the time**: parked cars at the
+curb fell inside its fixed "corridor" box and loomed as the car drove past. Fixes, each
+measured on the same footage:
+
+| Version | Critical ("Brake!") | Warning |
+|---|---|---|
+| Fixed corridor box (original) | 225 s (22.9%) | 181 s |
+| In-path test using offset ÷ object width (constant with distance) + 3-frame confirmation | 84 s (8.6%) | 63 s |
+| + ignore implausible box jumps (tracker identity swaps) + fill in clipped box sides | **86 s (8.8%)** | **64 s** |
+
+A genuine approach still triggers it. On a constant-speed simulated approach, the estimate converges
+to within 0.05 s of the truth and "Brake!" fires at a true time-to-collision of ~1.3–1.4 s. The 3-frame
+confirmation costs about 0.3 s of warning time compared with the 1.6 s threshold.
+
+**Still a limitation:** about 9% is far too high for a product. Most remaining alarms are parked
+cars when the street curves or the camera isn't pointed straight ahead, because the rule assumes
+the image centre is the car's heading. The real fix is estimating the car's path (lane
+detection); see the roadmap. Results: [eval/results/fcw_bdd100k.md](eval/results/fcw_bdd100k.md);
+reproduce with `.venv/bin/python -m eval.fcw_footage_eval` (needs a Kaggle token; downloads ~0.5 GB).
+
 ## Quick start
 
 **Requirements:** a Mac with Apple Silicon (M1 or newer; the speech and vision-language models
@@ -200,7 +224,9 @@ The pills at the top of the dashboard turn green as each model finishes loading.
 The dashboard (**http://127.0.0.1:8000**) opens by itself; allow camera and microphone access, then:
 
 1. **Driver monitor:** your webcam is picked automatically. Look ahead for ~3 s while it calibrates to your eyes.
-2. **Road camera:** click **Load dashcam video** and choose a driving clip: your own dashcam/phone footage, or a free-license clip (e.g. search "driving" on Pexels). Or pick a second camera.
+2. **Road camera:** click **Load dashcam video** and choose a driving clip. No dashcam? `.venv/bin/python scripts/make_demo_reel.py`
+   (needs a Kaggle token) builds a 78-second reel of real BDD100K city driving at `data/demo/drivemind_demo_reel.mp4`,
+   with a `CREDITS.txt` to include wherever you publish video made from it. Or pick a second camera.
 3. **Talk:** hold **Space** (or the mic button) and ask:
    - "How many cars are ahead of us?" / "Is the light green?"
    - "I'm freezing, warm it up and play some jazz" (makes two tool calls)

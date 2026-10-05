@@ -50,6 +50,14 @@ Read it alongside the code: every module's docstring is a short version of its s
 
 **Ego corridor.** Only objects roughly ahead of us (center 40% of the frame, lower part) count as threats.
 
+**What real footage taught us.** All of the above was validated on synthetic approaches, which have no ego-motion. On 16 minutes of real city driving (BDD100K) the original fixed "corridor" box raised "Brake!" 23% of the time. Fixes, each measured on the same footage (`eval/fcw_footage_eval.py`):
+- **A distance-invariant in-path test.** An object at lateral offset X and width W appears at image offset fX/Z with width fW/Z, so offset ÷ width = X/W stays constant as you approach. Parked cars sit several widths off your heading for their whole approach; a car in your lane stays under ~0.7.
+- **Confirmation.** Require 3 consecutive below-threshold estimates. This removes one-frame spikes, at the cost of ~0.3 s of warning time.
+- **Outlier guard.** A real object can't grow by more than ~28% between frames. Jumps like that mean the tracker swapped identities (a scene cut, an occlusion), so restart that track's history.
+- **Clipped boxes.** A tall vehicle close ahead gets cut off at the top of the frame, and a clipped height stops growing, which made TTC drift *up*. Remember each track's height/width ratio while it's fully visible and fill in the clipped side.
+
+Result: 8.8% instead of 22.9%. That's still too high. Most remaining alarms happen because the rule assumes the image centre is your heading, so the next step is path estimation (lane detection). We also had to make the end-to-end test realistic: the old "zoom into a photo" approach overflowed the frame by TTC ~1.6 s and no longer looked like a real approach.
+
 **Interview Q.** *When does looming TTC fail?* (Turning objects, partial occlusion that changes box size, ego-motion such as pitch over bumps, and objects that are moving away but still growing in the box because the crop is changing.)
 
 **Exercise.** Read speed via OBD-II and fuse it in. With known ego-speed you can also estimate *distance*.
